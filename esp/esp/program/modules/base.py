@@ -62,14 +62,16 @@ class ProgramModuleObj(models.Model):
         
     def program_anchor_cached(self, parent=False):
         """ We reference "self.program.anchor" quite often.  Getting it requires two DB lookups.  So, cache it. """
-        CACHE_KEY = "PROGRAMMODULEOBJ__PROGRAM__ANCHOR__CACHE__%d,%d" % ((parent and 1 or 0), self.id)
-        val = cache.get(CACHE_KEY)
+        if hasattr(self, 'request') and hasattr(self.request, '_program_anchor'):
+            return self.request._program_anchor
+
         if val == None:
             if parent and self.program.getParentProgram():
                 val = self.program.getParentProgram().anchor
             else:
                 val = self.program.anchor
-            cache.set(CACHE_KEY, val, 60)
+
+            self.request._program_anchor = val
 
         return val
 

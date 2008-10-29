@@ -123,6 +123,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.gzip.GZipMiddleware',
     'esp.middleware.PrettyErrorEmailMiddleware',
     'esp.middleware.StripWhitespaceMiddleware',
+    'django.middleware.transaction.TransactionMiddleware',
 )
 
 ROOT_URLCONF = 'esp.urls'

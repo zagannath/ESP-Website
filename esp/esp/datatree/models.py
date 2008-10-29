@@ -34,7 +34,6 @@ Email: web@esp.mit.edu
 
 from django.db import models
 from django.db.models import Q
-from django.db import transaction
 from django.core.cache import cache
 from esp.db.fields import AjaxForeignKey
 from esp.utils.memdb import mem_db
@@ -84,6 +83,11 @@ class DataTree(models.Model):
         # ordering should be by rangestart
         ordering = ['rangestart','-rangeend']
 
+
+    ## Hack to prevent pickling of DataTree objects
+    def __getstate__(self):
+        assert False, "Error: Don't Pickle DataTree instances!  You'll break a range!"
+        
     ########################
     # PARAMETER Functions  #
     ########################
@@ -106,7 +110,6 @@ class DataTree(models.Model):
     #######################
     # MUTATORS            #
     #######################
-    @transaction.commit_on_success
     def delete(self, recurse = False, superdelete = False):
         " Delete tree nodes. "
         
@@ -138,7 +141,6 @@ class DataTree(models.Model):
         return super(DataTree, self).delete()
         
 
-    @transaction.commit_on_success
     def save(self, create_root = False, uri_fix = False, old_save = False, start_size = None):
         " This will save the tree, using the rules of a tree. "
         if old_save:
@@ -178,7 +180,6 @@ class DataTree(models.Model):
                 self.rangestart = node.rangestart
                 self.rangeend   = node.rangeend
                 new_node = super(DataTree, self).save()
-                transaction.commit()
                 if node.parent_id != self.parent_id:
                     self.reinsert()
                     
@@ -268,11 +269,6 @@ class DataTree(models.Model):
                                                                     DataTree.expand_conservative)
 
 
-        try:
-            transaction.commit()
-        except:
-            pass
-        
         self.range_correct = True
         self.save(old_save = True)
 
@@ -578,9 +574,7 @@ class DataTree(models.Model):
     def get_by_uri(uri, create = False):
         " Get the node by the URI, A/B/.../asdf "
         # first we strip
-
-        #assert uri != 'V/Flags/Registration/Preliminary', 'Hmm'
-        
+                
         uri = uri.strip(DataTree.DELIMITER)
         
         try:
@@ -775,7 +769,6 @@ class DataTree(models.Model):
         for ran in ranges:
             DataTree.shift_many_ranges(ran[0], ran[0] - ran[1]-1, above_base = True, commit_wait = True)
             
-        transaction.commit()
         DataTree.unlock()
         
 
@@ -809,9 +802,6 @@ class DataTree(models.Model):
         cursor.execute("DELETE FROM %s WHERE rangestart > %s AND rangeend <= %s" % \
                        (table, self.rangestart, self.rangeend,))
 
-
-        if not commit_wait:
-            transaction.commit()
 
 
     @staticmethod
@@ -903,12 +893,6 @@ class DataTree(models.Model):
                        (DataTree._meta.db_table, false,
                         self.rangestart, self.rangeend))
 
-        if not commit_wait:
-            try:
-                transaction.commit()
-            except transaction.TransactionManagementError:
-                pass # We're not actually in a transaction; so don't bother
-            
     @staticmethod
     def shift_many_ranges(baserange, amount, above_base = True, commit_wait = False):
         " Shift all ranges either above or below a base by amount. "
@@ -967,9 +951,6 @@ class DataTree(models.Model):
         for strsql in sql:
             cursor.execute(strsql)
             
-        if not commit_wait:
-            transaction.commit()
-        
     @staticmethod
     def shift_all_ranges(amount, commit_wait = False):
         " Shift all ranges by an amount, either positive or negative. "
@@ -989,8 +970,6 @@ class DataTree(models.Model):
         cursor.execute("UPDATE DataTree SET rangeend = rangeend %s, " +\
                        "rangestart = rangestart %s" % [stramount,stramount])
         
-        if not commit_wait:
-            transaction.commit()
 
     ##################
     # EXCEPTIONS     #

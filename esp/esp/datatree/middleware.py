@@ -64,8 +64,9 @@ class DataTreeLockMiddleware(object):
             if not hasattr(request, '_datatree_nodes'):
                 request._datatree_nodes = {}
 
-            if uri in request._datatree_nodes:
-                return request._datatree_nodes[uri]
+            # Need to figure out how to get these sanely given that ranges may have changed
+            #if uri in request._datatree_nodes:
+            #    return request._datatree_nodes[uri]
 
             node = DataTree.get_by_uri(uri)
             request._datatree_nodes[uri] = node
