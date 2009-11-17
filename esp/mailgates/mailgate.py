@@ -6,7 +6,7 @@
 import sys, os, operator, email, re, smtplib, socket, sha, random
 new_path = '/'.join(sys.path[0].split('/')[:-1])
 sys.path += [new_path]
-sys.path.insert(0, "/esp/web/uchicago-splash.mit.edu/esp")
+sys.path.insert(0, "/lu/sites/dukesplash/esp")
 os.environ['DJANGO_SETTINGS_MODULE'] = 'esp.settings'
 
 from esp.dbmail.models import EmailList
@@ -15,7 +15,7 @@ host = socket.gethostname()
 import_location = 'esp.dbmail.receivers.'
 MAIL_PATH = '/usr/sbin/sendmail'
 server = smtplib.SMTP('localhost')
-ARCHIVE = 'esparchive@gmail.com'
+ARCHIVE = 'lu-archive@gmail.com'
 
 DEBUG=False
 
@@ -103,7 +103,7 @@ ESP MAIL SERVER
 
 Could not find user "%s"
 
-If you are experiencing difficulty, please email chicago-websupport@lists.learningu.org.
+If you are experiencing difficulty, please email duke-websupport@lists.learningu.org.
 
 -Educational Studies Program
 
