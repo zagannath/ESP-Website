@@ -59,17 +59,17 @@ color: #006600;
 
 #battlescreen input.button:hover
 {
-   color:#497CCA;
+   color:#AB72C4;
    border: #000000 1px solid;
    background-color: #ccffcc;
 }
 
 #battlescreen input.button:disabled
 {
-   color: #BCCAF5;
+   color: #DBC6E6;
    font-weight:normal;
    border: black 1px solid;
-   background-color: #141414;
+   background-color: #1E1E1E;
 }
 
 #battlescreen .bordertop2
@@ -112,7 +112,7 @@ color: #006600;
 }
 
 #battlescreen table {
-   background-color: #BCCAF5;
+   background-color: #DBC6E6;
    border: 0;
 }
 
@@ -124,12 +124,12 @@ color: #006600;
    padding: 5px;
    text-align: center;
    font-size: 1.1em;
-   background-color: #141414;
+   background-color: #1E1E1E;
    color: #FFC;
 }
 
 #battlescreen .welcomebox th {
-   background-color: #BCCAF5;
+   background-color: #DBC6E6;
    color: black;
 }
 
@@ -149,12 +149,12 @@ color: #006600;
 }
 
 #divmaintext a:visited {
-   color:#497CCA;
+   color:#AB72C4;
    text-decoration:underline;
 }
 
 #divmaintext a:link {
-   color:#497CCA;
+   color:#AB72C4;
    text-decoration:underline;
 }
 
@@ -177,11 +177,11 @@ color: #006600;
 }
 
 #battlescreen .borderTop {
-   border: 1px groove #141414; border-width: 4px 0 0 0;
+   border: 1px groove #1E1E1E; border-width: 4px 0 0 0;
 }
 
 #battlescreen .borderTopRight {
-   border: 1px groove #141414; border-width: 4px 0 0 0;
+   border: 1px groove #1E1E1E; border-width: 4px 0 0 0;
    text-align: right;
    font-size: 75%;
 }

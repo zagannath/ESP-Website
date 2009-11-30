@@ -3,7 +3,7 @@
 <tr><td>
 
 {% if login_result %}
-    <div class="navbar"><center><span style="color: #BCCAF5;">{{ login_result }}</span></center><br /></div>
+    <div class="navbar"><center><span style="color: #DBC6E6;">{{ login_result }}</span></center><br /></div>
 {% else %}
     {% if not request.user.is_authenticated %}
         <div class="navbar">Please log in to access program registration<br /></div>

@@ -6,7 +6,7 @@
    ////font-family: Arial, sans-serif;
    padding: 5px;
    font-size: 15px;
-   background-color: #141414;
+   background-color: #1E1E1E;
    color: #FFFFFF;
 }
 
@@ -15,14 +15,14 @@
    padding: 5px;
    font-size: 12px;
    font-weight: normal;
-   background-color: #00003C;
+   background-color: #29003C;
    color: #ffffff;
 }
 
 #catalog td {
    ////font-family: serif;
    font-size: 14px;
-   background-color: #BCCAF5;
+   background-color: #DBC6E6;
 }
 
 #catalog td.info {
@@ -80,8 +80,8 @@ p.category {
 .add_class td {
    text-align: center;
    vertical-align: top;
-   color: #bccaf5;
-   background-color: #00003C;
+   color: #DBC6E6;
+   background-color: #29003C;
    padding: 0px;
    margin: 0px;
 }
@@ -107,7 +107,7 @@ a.classtitle:hover {
 }
 
 input.button {
-    background-color: #BCCAF5;
+    background-color: #DBC6E6;
     border: 0px solid black;
     font-weight: bold;
     font-size: 13px;
@@ -116,8 +116,8 @@ input.button {
 }
 
 input.button:hover {
-    background-color: #00003C;
-    color: #BCCAF5;
+    background-color: #29003C;
+    color: #DBC6E6;
 }
 
 img.LaTeX {

@@ -1,5 +1,5 @@
 #main p {
-  color: #141414;
+  color: #1E1E1E;
   font-family: georgia;
   font-size: 11pt;
   line-height: 125%;
@@ -10,25 +10,25 @@ a img {
 }
 
 a:link {
-  color: #497CCA;
+  color: #AB72C4;
   text-decoration: none;
 }
 
 a:visited {
-  color: #497CCA
+  color: #AB72C4
 }
 
 a:hover {
-  color: #CC66FF
+  color: #F76F6F
 }
 
 a:active {
-  color: #497CCA
+  color: #AB72C4
 }
 
 h1 {
   font-size: 18pt;
-  color: #00003C;
+  color: #29003C;
   font-family: georgia;
   font-style: bold;
 }
@@ -43,19 +43,19 @@ body {
   width: 800px;
   margin-left: auto;
   margin-right: auto;
-  background: #141414;
+  background: #1E1E1E;
 /*  overflow: hidden; */
 }
 
 #topleft {
-  background: #141414;
+  background: #1E1E1E;
   width: 200px;
   height: 180px;
   float: left;
 }
 
 #nav_buttons {
-  background: #00003C;
+  background: #29003C;
   float: none;
 }
 
@@ -104,14 +104,14 @@ body {
 }
   
 #navbar_header {
-  background: #BCCAF5;
+  background: #DBC6E6;
   float: left;
   width: 200px;
   height: 30px;
 }
 
 #main_header {
-  background: #497CCA;
+  background: #AB72C4;
   float: right;
   width: 600px;
   min-height: 30px;
@@ -127,7 +127,7 @@ body {
 #navbar {
   float: left;  
   width: 200px;
-  background: #141414;
+  background: #1E1E1E;
   margin-bottom: -250cm;
   padding-bottom: 250cm;
 }
@@ -149,7 +149,7 @@ body {
 }
 
 .announcementlink_title {
-  color: #BCCAF5;
+  color: #DBC6E6;
   font-size: 11pt;
   line-height: 140%;
   font-weight: bold;
@@ -168,36 +168,36 @@ body {
 }
 
 #navbar a:link {
-  color: #BCCAF5;
+  color: #DBC6E6;
   text-decoration: none;
 }
 
 #navbar a:visited {
-  color: #BCCAF5;
+  color: #DBC6E6;
 }
 
 #navbar a:hover {
-  color: #497CCA;
+  color: #AB72C4;
 }
 
 #navbar a:active {
-  color: #BCCAF5;
+  color: #DBC6E6;
 }
 
 .learn {
-  color: #4DCE3D;
+  color: #B8E879;
 }
 
 .teach {
-  color: #FCD221;
+  color: #FCC742;
 }
 
 .volunteer {
-  color: #ED1C24;
+  color: #99C2F7;
 }
 
 .more_info {
-  color: #CC66FF;
+  color: #F76F6F;
 }
 
 div .emailwarning
@@ -209,6 +209,6 @@ div .emailwarning
   margin: 5px;
   overflow: visible;
   width: 540px;
-  background-color: #ed1c24;
+  background-color: #99C2F7;
   color: #FFFFFF;
 }

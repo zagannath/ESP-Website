@@ -122,7 +122,7 @@
 
 #login_form table td, #login_form table th {
    border: 0 !important;
-   background-color: #BCCAF5;
+   background-color: #DBC6E6;
    font-weight: normal;
 }
 
@@ -132,7 +132,7 @@
 
 #login_form thead th {
   text-align: center;
-  background-color: #141414;
+  background-color: #1E1E1E;
   border: 0px solid black !important;
   color: #FFFFFF;
 }
@@ -177,12 +177,12 @@
 }
 
 #program_form td.compulsory_event_time {
-    background-color: #497cca;
+    background-color: #AB72C4;
     color: #ffffff;
 }
 
 #program_form td.compulsory_event_desc {
-    background-color: #497cca;
+    background-color: #AB72C4;
     color: #ffffff;
 }
 
@@ -204,7 +204,7 @@ th .program_form_small{
    //font-family: Arial, Helvetica, sans-serif;
    padding: 5px;
    font-weight: bold;
-   background-color: #141414;
+   background-color: #1E1E1E;
    text-align: center;
    color: #ffffff;
 }
@@ -241,12 +241,12 @@ th .program_form_small{
 #program_form select.required {
     //font-family: Arial, Helvetica, sans-serif;
     font-size: 0.9em;
-    border: 1px solid #4dce3d;
+    border: 1px solid #B8E879;
 }
 
 
 #program_form input.button {
-    background-color: #BCCAF5;
+    background-color: #DBC6E6;
     border: 1px solid black;
     font-weight: bold;
     font-size: 13px;
@@ -254,7 +254,7 @@ th .program_form_small{
 }
 
 #program_form a.button {
-    background-color: #BCCAF5;
+    background-color: #DBC6E6;
     padding: 2px 5px 2px 5px;
     border: 1px solid black;
     font-weight: bold;
@@ -264,14 +264,14 @@ th .program_form_small{
 }
 
 #program_form input.button:hover {
-    background-color: #00003C;
-    color: #BCCAF5;
+    background-color: #29003C;
+    color: #DBC6E6;
 }
 
 #program_form a.button:hover {
-    background-color: #00003C;
+    background-color: #29003C;
     text-decoration: none;
-    color: #BCCAF5;
+    color: #DBC6E6;
 }
 
 #program_form td.underline {
@@ -302,7 +302,7 @@ th .program_form_small{
 #volunteer_form thead th {
    padding: 5px;
    font-weight: bold;
-   background-color: #141414;
+   background-color: #1E1E1E;
    text-align: center;
    color: #ffffff;
 }
