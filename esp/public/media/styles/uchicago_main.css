@@ -50,7 +50,7 @@ body {
 #topleft {
   background: #1E1E1E;
   width: 200px;
-  height: 180px;
+  height: 130px;
   float: left;
 }
 
@@ -60,8 +60,8 @@ body {
 }
 
 #nav_button1 {
-  width: 165px;
-  height: 180px;
+  width: 150px;
+  height: 130px;
   background-image: url(/media/images/linkf_01.gif); 
   float: left;
 }
@@ -71,8 +71,8 @@ body {
 }
   
 #nav_button2 {
-  width: 137px;
-  height: 180px;
+  width: 150px;
+  height: 130px;
   background-image: url(/media/images/linkf_02.gif); 
   float: left;
 }
@@ -82,8 +82,8 @@ body {
 }
   
 #nav_button3 {
-  width: 137px;
-  height: 180px;
+  width: 150px;
+  height: 130px;
   background-image: url(/media/images/linkf_03.gif); 
   float: left;
 }
@@ -93,8 +93,8 @@ body {
 }
   
 #nav_button4 {
-  width: 161px;
-  height: 180px;
+  width: 150px;
+  height: 130px;
   background-image: url(/media/images/linkf_04.gif); 
   float: right;
 }
