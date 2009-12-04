@@ -136,6 +136,16 @@ body {
   margin: 15px;
 }
 
+#navbar_contrast {
+    padding: 5px;
+    background: #DBC6E6;
+    color: #000000;
+}
+
+#navbar_contrast a {
+    color: #29003C !important;
+}
+
 #main {
   background: white;
   float: right;

@@ -115,7 +115,7 @@
 
 /* LOGIN FORM */
 #login_form table {
-   width: 300px;
+   width: 200px;
    border: 0px solid black !important;
    border-collapse: collapse;
 }
@@ -127,7 +127,7 @@
 }
 
 #login_form tbody th, #login_form tbody th {
-  padding: 2px !important;
+  padding: 0px !important;
 }
 
 #login_form thead th {
