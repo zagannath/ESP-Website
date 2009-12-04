@@ -53,8 +53,8 @@ class TeacherReviewApps(ProgramModuleObj, CoreModule):
             }
 
     @aux_call
-    @meets_deadline("/AppReview")
     @needs_teacher
+    @meets_deadline("/AppReview")
     def review_students(self, request, tl, one, two, module, extra, prog):
         try:
             cls = ClassSubject.objects.get(id = extra)
@@ -97,8 +97,8 @@ class TeacherReviewApps(ProgramModuleObj, CoreModule):
                                    'students':students})
 
     @aux_call
-    @meets_deadline()
     @needs_teacher
+    @meets_deadline()
     def app_questions(self, request, tl, one, two, module, extra, prog):
         """ Edit the subject-specific questions that students will respond to on
         their applications. """
@@ -150,8 +150,8 @@ class TeacherReviewApps(ProgramModuleObj, CoreModule):
         return render_to_response(self.baseDir()+'questions.html', request, (prog, tl), context)
 
     @aux_call
-    @meets_deadline("/AppReview")
     @needs_teacher
+    @meets_deadline("/AppReview")
     def review_student(self, request, tl, one, two, module, extra, prog):
         scrmi = prog.getModuleExtension('StudentClassRegModuleInfo')
         reg_nodes = scrmi.reg_verbs()

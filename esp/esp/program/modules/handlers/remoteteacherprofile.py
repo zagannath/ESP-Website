@@ -68,8 +68,8 @@ class RemoteTeacherProfile(ProgramModuleObj):
         return not created
 
     @main_call
-    @meets_deadline()
     @needs_teacher
+    @meets_deadline()
     def editremoteprofile(self, request, tl, one, two, module, extra, prog):
  
         context = {'module': self}

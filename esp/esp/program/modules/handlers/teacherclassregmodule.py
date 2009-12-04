@@ -566,8 +566,8 @@ class TeacherClassRegModule(ProgramModuleObj, module_ext.ClassRegModuleInfo):
         return HttpResponse(json.dumps({'restype_forms_html': formset_str, 'script': formset_script}))
         
     @aux_call
-    @meets_deadline("/Classes/Edit")
     @needs_teacher
+    @meets_deadline("/Classes/Edit")
     def editclass(self, request, tl, one, two, module, extra, prog):
         classes = ClassSubject.objects.filter(id = extra)
         if len(classes) != 1 or not self.user.canEdit(classes[0]):
@@ -577,8 +577,8 @@ class TeacherClassRegModule(ProgramModuleObj, module_ext.ClassRegModuleInfo):
         return self.makeaclass(request, tl, one, two, module, extra, prog, cls)
 
     @aux_call
-    @meets_deadline('/Classes')
     @needs_teacher
+    @meets_deadline('/Classes')
     def makeaclass(self, request, tl, one, two, module, extra, prog, newclass = None):
         # this is ugly...but it won't recurse and falls
         # back to @meets_deadline's behavior appropriately
