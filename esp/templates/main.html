@@ -42,11 +42,10 @@ body {
 <div id="main_header">{% block welcome_message %}<!-- CSS2 doesn't allow vertical alignment without a table.  So, give it a table. --><table width="600px" height="30px"><tr><td valign="middle">Welcome to Queen's Splash, a student-run organization at Queen's University</td></tr></table>{% endblock %}</div>
 
 <div id="navbar">
-<div id="navbar_content">
 
-{% if request.user.is_staff %}
-<a href="/admin/miniblog/entry/">Edit Links</a>
-{% endif %}
+
+
+<div id="navbar_content">
 
 {% load preview %}
 {% miniblog_for_user request.user as announcements 6 %}
@@ -68,6 +67,18 @@ body {
 {% endif %}
 
 </div>
+
+    <div id="navbar_content">
+    <br />
+    {% include "users/loginbox_ajax.html" %}
+    <br />
+
+    {% if request.user.is_staff %}
+        <a href="/admin/miniblog/entry/">Edit News</a> <br />
+        <a href="/admin/miniblog/announcementlink/">Edit Announcement/Links</a> <br />
+    {% endif %}
+    </div>
+
 </div>
 
 <div id="main"><div id="main_content">{% block content %}{% endblock %}</div></div>
