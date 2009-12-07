@@ -92,7 +92,7 @@ class CommModule(ProgramModuleObj):
         try:
             filterid = int(filterid)
         except:
-            raise ESPError(), "Corrupted POST data!  Please contact us at chicago-websupport@lists.learningu.org and tell us how you got this error, and we'll look into it."
+            raise ESPError(), "Corrupted POST data!  Please contact us at queens-websupport@lists.learningu.org and tell us how you got this error, and we'll look into it."
 
         userlist = PersistentQueryFilter.getFilterFromID(filterid, User).getList(User)
 
@@ -131,7 +131,7 @@ class CommModule(ProgramModuleObj):
         try:
             filterid = int(filterid)
         except:
-            raise ESPError(), "Corrupted POST data!  Please contact us at chicago-websupport@lists.learningu.org and tell us how you got this error, and we'll look into it."
+            raise ESPError(), "Corrupted POST data!  Please contact us at queens-websupport@lists.learningu.org and tell us how you got this error, and we'll look into it."
         
         filterobj = PersistentQueryFilter.getFilterFromID(filterid, User)
 

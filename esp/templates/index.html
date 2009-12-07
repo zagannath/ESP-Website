@@ -1,9 +1,9 @@
 {% extends "main.html" %}
 
-{% block title %}Splash! Chicago{% endblock %}
+{% block title %}Queen's Splash{% endblock %}
 
 {% block welcome_message %}<img src="/media/images/homewelc.gif" 
-alt="Welcome to Splash! Chicago" />{% endblock %}
+alt="Welcome to Queen's Splash" />{% endblock %}
 {% block content_color %}#FFFFFF{% endblock %}
 {% block nav_header %}{% endblock %}
 
@@ -21,7 +21,7 @@ alt="Welcome to Splash! Chicago" />{% endblock %}
 
 {% if request.user.get_profile.prof.isAdministrator %}
 <div id="divnav7">
-<a href="/myesp/admin">Administer Splash! Chicago</a>
+<a href="/myesp/admin">Administer Queen's Splash</a>
 </div>
 {% endif %}
 {% if request.user.get_profile.prof.isOnsite %}
