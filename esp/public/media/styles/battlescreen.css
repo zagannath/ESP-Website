@@ -59,14 +59,14 @@ color: #006600;
 
 #battlescreen input.button:hover
 {
-   color:#497CCA;
+   color:#ca4958;
    border: #000000 1px solid;
    background-color: #ccffcc;
 }
 
 #battlescreen input.button:disabled
 {
-   color: #BCCAF5;
+   color: #f5bcc6;
    font-weight:normal;
    border: black 1px solid;
    background-color: #141414;
@@ -112,7 +112,7 @@ color: #006600;
 }
 
 #battlescreen table {
-   background-color: #BCCAF5;
+   background-color: #f5bcc6;
    border: 0;
 }
 
@@ -129,7 +129,7 @@ color: #006600;
 }
 
 #battlescreen .welcomebox th {
-   background-color: #BCCAF5;
+   background-color: #f5bcc6;
    color: black;
 }
 
@@ -149,12 +149,12 @@ color: #006600;
 }
 
 #divmaintext a:visited {
-   color:#497CCA;
+   color:#ca4958;
    text-decoration:underline;
 }
 
 #divmaintext a:link {
-   color:#497CCA;
+   color:#ca4958;
    text-decoration:underline;
 }
 

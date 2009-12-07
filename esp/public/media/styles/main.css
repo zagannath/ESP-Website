@@ -10,25 +10,25 @@ a img {
 }
 
 a:link {
-  color: #497CCA;
+  color: #ca4958;
   text-decoration: none;
 }
 
 a:visited {
-  color: #497CCA
+  color: #ca4958
 }
 
 a:hover {
-  color: #CC66FF
+  color: #c6aae5
 }
 
 a:active {
-  color: #497CCA
+  color: #ca4958
 }
 
 h1 {
   font-size: 18pt;
-  color: #00003C;
+  color: #50002d;
   font-family: georgia;
   font-style: bold;
 }
@@ -52,14 +52,14 @@ body {
   height: 100px;
   margin-left: auto;
   margin-right: auto;
-  background: #BCCAF5;
+  background: #f5bcc6;
   border-top: 1px dashed #666699;
   overflow: hidden;
 }
 
 #topleft {
   //    background: #141414;
-  background: #00003C;
+  background: #50002d;
   width: 200px;
   height: 180px;
   float: left;
@@ -67,7 +67,7 @@ body {
 }
 
 #title_bar {
-  background: #00003C;
+  background: #50002d;
   width: 600px;
   height: 140px;
   float: right;
@@ -93,7 +93,7 @@ table.loginform {
 }
 
 #main_header {
-  background: #497CCA;
+  background: #ca4958;
   float: right;
   width: 600px;
   min-height: 30px;
@@ -120,7 +120,7 @@ table.loginform {
 }
 
 #nav_buttons {
-  background: #00003C;
+  background: #50002d;
   width: 600px;
   height: 40px;
   float: right;
@@ -130,12 +130,12 @@ table.loginform {
 a.navbutton {
     padding: 4px;
     margin: 6px;
-    border: 1px solid #BCCAF5;
-    background-color: #BCCAF5;
+    border: 1px solid #f5bcc6;
+    background-color: #f5bcc6;
     font-family: Arial, sans-serif;
     font-size: 1.0em;
     font-weight: bold;
-    color: #00003C;
+    color: #50002d;
     text-decoration: none;
 }
 
@@ -148,18 +148,18 @@ a.navbutton:hover {
 
 #navbar_header {
   font-family: Georgia, serif;
-  background: #BCCAF5;
+  background: #f5bcc6;
   text-align: center;
   float: left;
   width: 200px;
   height: 30px;
   vertical-align: middle;
-  //    border-bottom: 1px dashed #497CCA;
+  //    border-bottom: 1px dashed #ca4958;
 }
 
 
 .announcementlink_title {
-  color: #BCCAF5;
+  color: #f5bcc6;
   font-size: 11pt;
   line-height: 140%;
   font-weight: bold;
@@ -178,20 +178,20 @@ a.navbutton:hover {
 }
 
 #navbar a:link {
-  color: #BCCAF5;
+  color: #f5bcc6;
   text-decoration: none;
 }
 
 #navbar a:visited {
-  color: #BCCAF5;
+  color: #f5bcc6;
 }
 
 #navbar a:hover {
-  color: #497CCA;
+  color: #ca4958;
 }
 
 #navbar a:active {
-  color: #BCCAF5;
+  color: #f5bcc6;
 }
 
 /* Nav bar links */
@@ -223,19 +223,19 @@ a.navbutton:hover {
 
 /* Section-specific background colors from Chicago */
 .learn {
-  color: #4DCE3D;
+  color: #91bbf5;
 }
 
 .teach {
-  color: #FCD221;
+  color: #fcc642;
 }
 
 .volunteer {
-  color: #ED1C24;
+  color: #98e6af;
 }
 
 .more_info {
-  color: #CC66FF;
+  color: #c6aae5;
 }
 
 

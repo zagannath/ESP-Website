@@ -10,25 +10,25 @@ a img {
 }
 
 a:link {
-  color: #497CCA;
+  color: #ca4958;
   text-decoration: none;
 }
 
 a:visited {
-  color: #497CCA
+  color: #ca4958
 }
 
 a:hover {
-  color: #CC66FF
+  color: #c6aae5
 }
 
 a:active {
-  color: #497CCA
+  color: #ca4958
 }
 
 h1 {
   font-size: 18pt;
-  color: #00003C;
+  color: #50002d;
   font-family: georgia;
   font-style: bold;
 }
@@ -55,7 +55,7 @@ body {
 }
 
 #nav_buttons {
-  background: #00003C;
+  background: #50002d;
   float: none;
 }
 
@@ -104,14 +104,14 @@ body {
 }
   
 #navbar_header {
-  background: #BCCAF5;
+  background: #f5bcc6;
   float: left;
   width: 200px;
   height: 30px;
 }
 
 #main_header {
-  background: #497CCA;
+  background: #ca4958;
   float: right;
   width: 600px;
   min-height: 30px;
@@ -149,7 +149,7 @@ body {
 }
 
 .announcementlink_title {
-  color: #BCCAF5;
+  color: #f5bcc6;
   font-size: 11pt;
   line-height: 140%;
   font-weight: bold;
@@ -168,36 +168,36 @@ body {
 }
 
 #navbar a:link {
-  color: #BCCAF5;
+  color: #f5bcc6;
   text-decoration: none;
 }
 
 #navbar a:visited {
-  color: #BCCAF5;
+  color: #f5bcc6;
 }
 
 #navbar a:hover {
-  color: #497CCA;
+  color: #ca4958;
 }
 
 #navbar a:active {
-  color: #BCCAF5;
+  color: #f5bcc6;
 }
 
 .learn {
-  color: #4DCE3D;
+  color: #91bbf5;
 }
 
 .teach {
-  color: #FCD221;
+  color: #fcc642;
 }
 
 .volunteer {
-  color: #ED1C24;
+  color: #98e6af;
 }
 
 .more_info {
-  color: #CC66FF;
+  color: #c6aae5;
 }
 
 div .emailwarning
@@ -209,6 +209,6 @@ div .emailwarning
   margin: 5px;
   overflow: visible;
   width: 540px;
-  background-color: #ed1c24;
+  background-color: #98e6af;
   color: #FFFFFF;
 }

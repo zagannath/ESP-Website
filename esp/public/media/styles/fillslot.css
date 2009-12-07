@@ -18,7 +18,7 @@ span.error {
 }
 
 input.addbutton {
-    background-color: #00003C;
+    background-color: #50002d;
     color: #ffffff;
     border: 0px solid black;
     font-weight: bold;
@@ -29,12 +29,12 @@ input.addbutton {
 }
 
 input.addbutton:hover {
-    background-color: #497CCA;
+    background-color: #ca4958;
 }
 
 input.addbutton_disabled {
     color: #ffffff;
-    background-color: #ed1c24;
+    background-color: #98e6af;
     border: 0px solid black;
     font-weight: bold;
     font-size: 0.9em;
