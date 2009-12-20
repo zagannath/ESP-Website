@@ -197,10 +197,11 @@ class ProgramModuleObj(models.Model):
             #   code here won't do anything and the page will be returned as usual.
             if request.user.is_authenticated() and isinstance(moduleobj, CoreModule):
                 other_modules = ProgramModuleObj.objects.filter(program=prog, module__module_type=moduleobj.module.module_type, required=True).select_related(depth=1).order_by('seq')
-                for m in other_modules:
+                for mod in other_modules:
+                    m = mod.module.getPythonClass()()
+                    m.__dict__.update(mod.__dict__)
                     m.request = request
                     m.user    = ESPUser(request.user)
-                    m.__class__ = m.module.getPythonClass()
                     if not m.isCompleted() and hasattr(m, m.module.main_call):
                         return getattr(m, m.module.main_call)(request, tl, one, two, call_txt, extra, prog)
 

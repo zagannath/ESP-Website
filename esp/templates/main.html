@@ -69,9 +69,11 @@ body {
 </div>
 
     <div id="navbar_content">
-    <br />
-    {% include "users/loginbox_ajax.html" %}
-    <br />
+    {% if request.user.isAdministrator %}
+        <br />
+        {% include "users/loginbox_ajax.html" %}
+        <br />
+    {% endif %}
 
     {% if request.user.is_staff %}
         <a href="/admin/miniblog/entry/">Edit News</a> <br />

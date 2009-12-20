@@ -26,7 +26,7 @@
 {% else %}
     {% autoescape off %}{{ module.makeLink }}{% endautoescape %}
 {% endif %}
-{% if not module.module.required %}{% if not module.hideNotRequired %}<br /><em>(optional)</em> {% endif %}{% endif %}
+{% if not module.required %}{% if not module.hideNotRequired %}<br /><em>(optional)</em> {% endif %}{% endif %}
 </td>
 {% endwith %}
 {% endif %}
