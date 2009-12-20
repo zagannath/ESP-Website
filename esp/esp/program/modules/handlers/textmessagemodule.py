@@ -36,7 +36,7 @@ from esp.users.forms.user_profile import PhoneNumberField
 from esp.program.models import RegistrationProfile
 
 class TextMessageForm(forms.Form):
-    phone_number = PhoneNumberField(local_areacode='773')
+    phone_number = PhoneNumberField(local_areacode='919')
 
 class TextMessageModule(ProgramModuleObj):
     @classmethod

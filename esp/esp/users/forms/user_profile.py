@@ -46,11 +46,11 @@ class UserContactForm(FormUnrestrictedOtherUser):
     last_name = SizedCharField(length=30, max_length=64)
     e_mail = forms.EmailField()
     #   Chicago doesn't care what kind of phone number you give them, but they need one.
-    phone_day = PhoneNumberField(local_areacode='773')   #, required=False)
-    #   phone_cell = PhoneNumberField(local_areacode='773', required=False)
+    phone_day = PhoneNumberField(local_areacode='919')   #, required=False)
+    #   phone_cell = PhoneNumberField(local_areacode='919', required=False)
     address_street = SizedCharField(length=40, max_length=100)
     address_city = SizedCharField(length=20, max_length=50)
-    address_state = forms.ChoiceField(choices=zip(_states,_states), initial="IL")
+    address_state = forms.ChoiceField(choices=zip(_states,_states), initial="NC")
     address_zip = SizedCharField(length=5, max_length=5)
     address_postal = forms.CharField(required=False, widget=forms.HiddenInput())
 
@@ -64,8 +64,8 @@ class TeacherContactForm(UserContactForm):
     """ Contact form for teachers """
 
     # Require both phone numbers for teachers.
-    phone_day = PhoneNumberField(local_areacode='773')
-    phone_cell = PhoneNumberField(local_areacode='773')
+    phone_day = PhoneNumberField(local_areacode='919')
+    phone_cell = PhoneNumberField(local_areacode='919')
     
 class EmergContactForm(FormUnrestrictedOtherUser):
     """ Contact form for emergency contacts """
@@ -73,11 +73,11 @@ class EmergContactForm(FormUnrestrictedOtherUser):
     emerg_first_name = SizedCharField(length=25, max_length=64)
     emerg_last_name = SizedCharField(length=30, max_length=64)
     emerg_e_mail = forms.EmailField(required=False)
-    emerg_phone_day = PhoneNumberField(local_areacode='773')
-    emerg_phone_cell = PhoneNumberField(local_areacode='773', required=False)
+    emerg_phone_day = PhoneNumberField(local_areacode='919')
+    emerg_phone_cell = PhoneNumberField(local_areacode='919', required=False)
     emerg_address_street = SizedCharField(length=40, max_length=100)
     emerg_address_city = SizedCharField(length=20, max_length=50)
-    emerg_address_state = forms.ChoiceField(choices=zip(_states,_states), initial="IL")
+    emerg_address_state = forms.ChoiceField(choices=zip(_states,_states), initial="NC")
     emerg_address_zip = SizedCharField(length=5, max_length=5)
     emerg_address_postal = forms.CharField(required=False, widget=forms.HiddenInput())
 
@@ -88,8 +88,8 @@ class GuardContactForm(FormUnrestrictedOtherUser):
     guard_first_name = SizedCharField(length=25, max_length=64)
     guard_last_name = SizedCharField(length=30, max_length=64)
     guard_e_mail = forms.EmailField(required=False)
-    guard_phone_day = PhoneNumberField(local_areacode='773')
-    guard_phone_cell = PhoneNumberField(local_areacode='773', required=False)
+    guard_phone_day = PhoneNumberField(local_areacode='919')
+    guard_phone_cell = PhoneNumberField(local_areacode='919', required=False)
 
 class StudentInfoForm(FormUnrestrictedOtherUser):
     """ Extra student-specific information """

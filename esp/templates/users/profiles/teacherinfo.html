@@ -60,7 +60,7 @@
 </tr>
 
 <tr>
- <td><label for="id_student_id">Student ID number:</label></td>
+ <td><label for="id_student_id">Duke Unique ID number:</label></td>
  <td>{{ form.student_id }} {% if form.student_id.errors %}
    <br /><span class="form_error">{{ form.student_id.errors|join:", " }}</span>
    {% endif %}
@@ -68,13 +68,10 @@
 </tr>
 
 <tr>
- <td><label for="id_mail_reimbursement">For reimbursement checks:</label></td>
- <td>{{ form.mail_reimbursement }} {% if form.mail_reimbursement.errors %}
-   <br /><span class="form_error">{{ form.mail_reimbursement.errors|join:", " }}</span>
-   {% endif %}
+ <td colspan="2">
+ Please turn in all original receipts when you check-in on February 20th.  Place all receipts in a sealed envelope with your Full Name and Duke Unique ID Number.  Your reimbursement will be mailed to you.  No receipts will be accepted after February 20th.
  </td>
 </tr>
-
 
 <!-- <tr>
  <td colspan="2"><p>

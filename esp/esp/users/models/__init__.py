@@ -761,7 +761,7 @@ class ESPUser(User, AnonymousUser):
     def current_schoolyear():
         now = datetime.now()
         curyear = now.year
-        if datetime(curyear, 6, 1) > now:
+        if datetime(curyear, 2, 1) > now:
             schoolyear = curyear
         else:
             schoolyear = curyear + 1
