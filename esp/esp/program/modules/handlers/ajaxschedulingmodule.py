@@ -31,6 +31,7 @@ Email: web@esp.mit.edu
 from esp.program.modules.base    import ProgramModuleObj, needs_admin, main_call, aux_call
 from esp.program.modules         import module_ext
 from esp.program.models          import Program, ClassSubject, ClassSection, ClassCategories
+from esp.users.models            import UserAvailability
 from esp.datatree.models         import *
 from esp.web.util                import render_to_response
 from django                      import forms
@@ -105,7 +106,7 @@ class AJAXSchedulingModule(ProgramModuleObj):
                 'class_id': s.parent_class_id,
                 'block_contents': render_to_string(self.baseDir() + 'section_block_label.html', {'sec': s}),
                 'emailcode': s.emailcode(),
-                'text': s.title,
+                'text': s.title(),
                 'category': s.category.category,
                 'length': float(s.duration),
                 'teachers': teacher_dict[s.parent_class.anchor_id],
@@ -171,7 +172,7 @@ class AJAXSchedulingModule(ProgramModuleObj):
         resources_for_user = defaultdict(list)
 
         for resource in resources:
-            resources_for_user[resource['user_id']].append(resource['event__id'])
+            resources_for_user[resource['user_id']].append(resource['event_id'])
         
         teacher_dicts = [
             {   'uid': t.id,
