@@ -767,13 +767,12 @@ class ProgramPrintables(ProgramModuleObj):
     @staticmethod
     def getSchedule(program, student):
         
-        
         schedule = """
 Student schedule for %s:
 
  Time                   | Class                                  | Room\n""" % student.name()
         schedule += '------------------------+----------------------------------------+-----------\n'
-        
+
         classes = ProgramPrintables.get_student_classlist(program, student)
         
         for cls in classes:
@@ -783,7 +782,7 @@ Student schedule for %s:
             else:
                 rooms = ' ' + ", ".join(rooms)
                 
-            schedule += '%s|%s|%s\n' % ((' '+",".join(cls.friendly_times())).ljust(24), (' ' + cls.title).ljust(40), rooms)
+            schedule += '%s|%s|%s\n' % ((' '+",".join(cls.friendly_times())).ljust(24), (' ' + cls.title()).ljust(40), rooms)
                
         return schedule
 
@@ -831,7 +830,7 @@ Student schedule for %s:
         return response
         
     @aux_call
-    def studentschedules(self, request, tl, one, two, module, extra, prog, onsite=False):
+    def studentschedules(self, request, tl, one, two, module, extra, prog, onsite=False, format='pdf'):
         """ generate student schedules """
         
         context = {'module': self }

@@ -94,7 +94,8 @@ def gen_latex(texcode, type='pdf'):
     if type=='pdf':
         mime = 'application/pdf'
         os.system('cd %s; latex %s.tex' % (TEX_TEMP, file_base))
-        os.system('cd %s; dvips -t letter %s.dvi' % (TEX_TEMP, file_base))
+        # Hack to force landscape mode -Michael P 2/18/2010
+        os.system('cd %s; dvips -t landscape -t letter %s.dvi' % (TEX_TEMP, file_base))
         os.system('cd %s; ps2pdf %s.ps' % (TEX_TEMP, file_base))
         if remove_files:
             os.remove('%s.dvi' % file_base)

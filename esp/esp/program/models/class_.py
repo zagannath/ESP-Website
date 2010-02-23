@@ -861,7 +861,7 @@ class ClassSection(models.Model):
             if cmpresult != 0:
                 return cmpresult
 
-        return cmp(self.title, other.title)
+        return cmp(self.title(), other.title())
 
 
     def firstBlockEvent(self):
