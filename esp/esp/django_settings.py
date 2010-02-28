@@ -79,7 +79,6 @@ INTERNAL_IPS = (
 # Default admins #
 ##################
 ADMINS = (
-    ('ESP Webmasters','esp-serverlog@mit.edu'),
     ('LU Webmasters', 'serverlog@lists.learningu.org'),
 )
 
@@ -94,8 +93,8 @@ EMAIL_SUBJECT_PREFIX = '[ ESP ERROR ] '
 
 # Default addresses to send archive/bounce info to
 DEFAULT_EMAIL_ADDRESSES = {
-    'archive': 'esparchive@gmail.com',
-    'bounces': 'esp-bounces@mit.edu'
+    'archive': 'learninguarchive@gmail.com',
+    'bounces': 'bounces@lists.learningu.org'
 }
 
 
