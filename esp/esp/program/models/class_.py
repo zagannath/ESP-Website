@@ -31,6 +31,7 @@ Email: web@esp.mit.edu
 import datetime
 import time
 from collections import defaultdict
+from esp.utils.property import PropertyDict
 
 # django Util
 from django.db import models
@@ -42,6 +43,8 @@ from django.utils.datastructures import SortedDict
 from esp.db.models.prepared import ProcedureManager
 from esp.db.fields import AjaxForeignKey
 from esp.db.cache import GenericCacheHelper
+from esp.tagdict.models import Tag
+from esp.utils.property import PropertyDict
 
 # django models
 from django.contrib.auth.models import User
@@ -53,7 +56,6 @@ from esp.cal.models import Event
 from esp.qsd.models import QuasiStaticData
 from esp.qsdmedia.models import Media as QSDMedia
 from esp.users.models import ESPUser, UserBit
-from esp.utils.property import PropertyDict
 from esp.middleware              import ESPError
 from esp.program.models          import Program
 from esp.program.models import BooleanExpression, ScheduleMap, ScheduleConstraint, ScheduleTestOccupied, ScheduleTestCategory, ScheduleTestSectionList
@@ -108,17 +110,17 @@ class ClassManager(ProcedureManager):
         
         return self.filter(status = 10)
 
-    def catalog(self, program, ts=None, force_all=False, initial_queryset=None):
+    def catalog(self, program, ts=None, force_all=False, initial_queryset=None, use_cache=True, cache_only=False):
         # Try getting the catalog straight from cache
-        print (program, ts, force_all, initial_queryset, True)
         catalog = self.catalog_cached(program, ts, force_all, initial_queryset, cache_only=True)
         if catalog is None:
             # Get it from the DB, then try prefetching class sizes
-            catalog = self.catalog_cached(program, ts, force_all, initial_queryset)
+            catalog = self.catalog_cached(program, ts, force_all, initial_queryset, use_cache=use_cache, cache_only=cache_only)
         else:
             for cls in catalog:
                 for sec in cls.get_sections():
-                    del sec._count_students
+                    if hasattr(sec, '_count_students'):
+                        del sec._count_students
 
         return catalog
 
@@ -151,10 +153,11 @@ class ClassManager(ProcedureManager):
         if ts is not None:
             classes = classes.filter(sections__meeting_times=ts)
         
-        select = SortedDict([( '_num_students', 'SELECT COUNT(*) FROM "users_userbit" WHERE ("users_userbit"."verb_id" = %s AND "users_userbit"."qsc_id" = "datatree_datatree"."id" AND "datatree_datatree"."parent_id" = "program_class"."anchor_id" AND "users_userbit"."startdate" <= %s AND "users_userbit"."enddate" >= %s)'),
-                             ('teacher_ids', 'SELECT list("users_userbit"."user_id") FROM "users_userbit" WHERE ("users_userbit"."verb_id" = %s AND "users_userbit"."qsc_id" = "program_class"."anchor_id" AND "users_userbit"."enddate" >= %s AND "users_userbit"."startdate" <= %s)'),
+        select = SortedDict([( '_num_students', 'SELECT COUNT(DISTINCT "users_userbit"."user_id") FROM "users_userbit", "datatree_datatree" AS "foo" WHERE ("users_userbit"."verb_id" = %s AND "users_userbit"."qsc_id" = "foo"."id" AND "foo"."parent_id" = "program_class"."anchor_id" AND "users_userbit"."startdate" <= %s AND "users_userbit"."enddate" >= %s)'),
+                             ('teacher_ids', 'SELECT list(DISTINCT "users_userbit"."user_id") FROM "users_userbit" WHERE ("users_userbit"."verb_id" = %s AND "users_userbit"."qsc_id" = "program_class"."anchor_id" AND "users_userbit"."enddate" >= %s AND "users_userbit"."startdate" <= %s)'),
                              ('media_count', 'SELECT COUNT(*) FROM "qsdmedia_media" WHERE ("qsdmedia_media"."anchor_id" = "program_class"."anchor_id")'),
-                             ('_index_qsd', 'SELECT list("qsd_quasistaticdata"."id") FROM "qsd_quasistaticdata" WHERE ("qsd_quasistaticdata"."path_id" = "program_class"."anchor_id" AND "qsd_quasistaticdata"."name" = \'learn:index\')')])
+                             ('_index_qsd', 'SELECT list("qsd_quasistaticdata"."id") FROM "qsd_quasistaticdata" WHERE ("qsd_quasistaticdata"."path_id" = "program_class"."anchor_id" AND "qsd_quasistaticdata"."name" = \'learn:index\')'),
+                             ('_studentapps_count', 'SELECT COUNT(*) FROM "program_studentappquestion" WHERE ("program_studentappquestion"."subject_id" = "program_class"."id")')])
                              
         select_params = [ enrolled_node.id,
                           now,
@@ -164,8 +167,9 @@ class ClassManager(ProcedureManager):
                           now,
                          ]
         classes = classes.extra(select=select, select_params=select_params)
-        classes = classes.order_by('category', '_num_students', 'id')
+        classes = classes.order_by('sections__meeting_times__start', 'category', '_num_students', 'id')
         classes = classes.distinct()
+        classes = list(classes)
 
         # All class ID's; used by later query ugliness:
         class_ids = map(lambda x: x.id, classes)
@@ -184,7 +188,7 @@ class ClassManager(ProcedureManager):
         
         # We got classes.  Now get teachers...
 
-        teachers = User.objects.filter(userbit__verb=teaching_node, userbit__qsc__parent__parent=program.anchor_id, userbit__startdate__lte=now, userbit__enddate__gte=now).distinct()
+        teachers = ESPUser.objects.filter(userbit__verb=teaching_node, userbit__qsc__parent__parent=program.anchor_id, userbit__startdate__lte=now, userbit__enddate__gte=now).distinct()
 
         teachers_by_id = {}
         for t in teachers:            
@@ -267,6 +271,7 @@ class ClassSection(models.Model):
                          ]
 
         sections = queryset.extra(select=select, select_params=select_params)
+        sections = list(sections)
         section_ids = map(lambda x: x.id, sections)
 
         # Now, go get some events...
@@ -309,23 +314,35 @@ class ClassSection(models.Model):
         return self.parent_class.title()
     title = property(_get_title)
     
+    def _get_room_capacity(self, rooms = None):
+        if rooms == None:
+            rooms = self.initial_rooms()
+
+        rc = 0
+        for r in rooms:
+            rc += r.num_students
+
+        return rc
+
+    @cache_function
     def _get_capacity(self, ignore_changes=False):
+    
+        ans = None
         if self.max_class_capacity is not None:
             ans = self.max_class_capacity
 
         rooms = self.initial_rooms()
         if len(rooms) == 0:
-            ans = self.parent_class.class_size_max
+            if not ans:
+                ans = self.parent_class.class_size_max
         else:
             rc = 0
             for r in rooms:
                 rc += r.num_students
-            ans = min(self.parent_class.class_size_max, rc)
-
-            # Only save the capacity if we do have rooms assigned;
-            # otherwise don't bother as this number will almost definitely change
-            self.max_class_capacity = ans
-            self.save()
+            if ans:
+                ans = min(ans, rc)
+            else:
+                ans = min(self.parent_class.class_size_max, rc)
             
         #   Apply dynamic capacity rule
         if not ignore_changes:
@@ -333,9 +350,20 @@ class ClassSection(models.Model):
             return int(ans * options.class_cap_multiplier + options.class_cap_offset)
         else:
             return int(ans)
-   
+
+    _get_capacity.depend_on_m2m(lambda:ClassSection, 'meeting_times', lambda sec, event: {'self': sec})
+    _get_capacity.depend_on_model(lambda:ClassSubject)
+    _get_capacity.depend_on_model(lambda: Resource)
+    _get_capacity.depend_on_row(lambda:ClassSection, 'self')
+    _get_capacity.depend_on_row(lambda:ResourceRequest, lambda r: {'self': r.target})
+    _get_capacity.depend_on_row(lambda:ResourceAssignment, lambda r: {'self': r.target})
+
+       
     capacity = property(_get_capacity)
 
+    def title(self):
+        return self.parent_class.title()
+    
     def __init__(self, *args, **kwargs):
         super(ClassSection, self).__init__(*args, **kwargs)
         self.cache = SectionCacheHelper(self)
@@ -430,7 +458,6 @@ class ClassSection(models.Model):
             return False
         else:
             td = time.time() - time.mktime(st.timetuple())
-            print td
             if td < 600 and td > -3000:
                 return True
             else:
@@ -456,35 +483,24 @@ class ClassSection(models.Model):
             return None
    
     #   Scheduling helper functions
-    
+
+    @cache_function
     def sufficient_length(self, event_list=None):
         """   This function tells if the class' assigned times are sufficient to cover the duration.
         If the duration is not set, 1 hour is assumed. """
         
-        # Only cache when no event list is provided.
-        caching = False
-        if not event_list:
-            cache_key = "CLASSSECTION__SUFFICIENT_LENGTH__%s" % self.id
-            caching = True
-            retVal = cache.get(cache_key)
-            if retVal != None:
-                return retVal
-        
-        if self.duration == 0.0:
-            duration = 1.0
-        else:
-            duration = self.duration
-        
+        duration = self.duration or 1.0
+
         if event_list is None:
             event_list = list(self.meeting_times.all().order_by('start'))
         #   If you're 15 minutes short that's OK.
         time_tolerance = 15 * 60
         if Event.total_length(event_list).seconds + time_tolerance < duration * 3600:
-            if caching: cache.set(cache_key, False, timeout=86400)
             return False
         else:
-            if caching: cache.set(cache_key, True, timeout=86400)
             return True
+    sufficient_length.depend_on_m2m(lambda:ClassSection, 'meeting_times', lambda sec, event: {'self': sec})
+    
     
     def extend_timeblock(self, event, merged=True):
         """ Return the Event list or (merged Event) for this class's duration if the class starts in the
@@ -640,7 +656,7 @@ class ClassSection(models.Model):
             return base_list
 
         teachers = self.parent_class.teachers()
-        num_teachers = teachers.count()
+        num_teachers = len(teachers)
 
         timeslot_list = []
         for t in teachers:
@@ -740,19 +756,16 @@ class ClassSection(models.Model):
 
     def cannotAdd(self, user, checkFull=True, request=False, use_cache=True):
         """ Go through and give an error message if this user cannot add this section to their schedule. """
-
-        # Test any scheduling constraints based on this class
-        relevantFilters = ScheduleTestSectionList.filter_by_section(self)
-        #relevantConstraints = ScheduleConstraint.objects.filter(Q(requirement__booleantoken__in=relevantFilters) | Q(condition__booleantoken__in=relevantFilters))
-
-        relevantConstraints = ScheduleConstraint.objects.filter(program=self.parent_program)
+        # Test any scheduling constraints
+        relevantConstraints = self.parent_program.getScheduleConstraints()
+        
         # Set up a ScheduleMap; fake-insert this class into it
         sm = ScheduleMap(user, self.parent_program)
         sm.add_section(self)
         
         for exp in relevantConstraints:
             if not exp.evaluate(sm):
-                return "You're violating a scheduling constraint.  Adding <i>%s</i> to your schedule requires that you: %s." % (self.title, exp.requirement.label)
+                return "You're violating a scheduling constraint.  Adding <i>%s</i> to your schedule requires that you: %s." % (self.title(), exp.requirement.label)
         
         scrmi = self.parent_program.getModuleExtension('StudentClassRegModuleInfo')
         if scrmi.use_priority:
@@ -769,6 +782,12 @@ class ClassSection(models.Model):
         # check to see if registration has been closed for this section
         if not self.isRegOpen():
             return 'Registration for this section is not currently open.'
+
+        # check to make sure they haven't already registered for too many classes in this section
+        if scrmi.use_priority:
+            priority = user.getRegistrationPriority(self.parent_class.parent_program, self.meeting_times.all())
+            if priority > scrmi.priority_limit:
+                return 'You are only allowed to select up to %s top classes' % (scrmi.priority_limit)
 
         # this user *can* add this class!
         return False
@@ -824,6 +843,7 @@ class ClassSection(models.Model):
             retVal = retVal | new_qs
             
         retVal = [ESPUser(u) for u in retVal.distinct()]
+        retVal.sort(key=lambda x: x.last_name.lower())
 
         if defaults:
             self.cache['students'] = retVal
@@ -854,7 +874,7 @@ class ClassSection(models.Model):
             if cmpresult != 0:
                 return cmpresult
 
-        return cmp(self.title, other.title)
+        return cmp(self.title(), other.title())
 
 
     def firstBlockEvent(self):
@@ -896,15 +916,8 @@ class ClassSection(models.Model):
                     self._count_students = retVal
                     return retVal
 
-
-        qs = UserBit.objects.none()
-        for verb_str in verbs:
-            v = DataTree.get_by_uri('V/Flags/Registration' + verb_str)
-            # NOTE: This assumes that no user can be both Enrolled and Rejected
-            # from the same class. Otherwise, this is pretty silly.
-            new_qs = UserBit.objects.filter(qsc=self.anchor, verb=v)
-            new_qs = new_qs.filter(enddate__gte=datetime.datetime.now())
-            qs = qs | new_qs
+        v = [ DataTree.get_by_uri('V/Flags/Registration' + verb_str) for verb_str in verbs ]
+        qs = User.objects.filter(userbit__qsc=self.anchor, userbit__verb__in=v, userbit__enddate__gte=datetime.datetime.now()).distinct()
         
         retVal = qs.count()
 
@@ -1036,9 +1049,7 @@ class ClassSection(models.Model):
             blank_responses.delete()
         
         # update the students cache
-        students = list(self.students())
-        students = [ student for student in students
-                     if student.id != user.id ]
+        students = [x for x in self.students() if x.id != user.id]
         self.cache['students'] = students
         self.update_cache_students()
 
@@ -1047,10 +1058,7 @@ class ClassSection(models.Model):
         scrmi = self.parent_program.getModuleExtension('StudentClassRegModuleInfo')
     
         prereg_verb_base = scrmi.signup_verb
-        
-        #   Override the registration verb if the class has application questions
-        if self.parent_class.studentappquestion_set.count() > 0:
-            prereg_verb_base = GetNode('V/Flags/Registration/Applied')
+
         
         if scrmi.use_priority:
             prereg_verb = DataTree.get_by_uri(prereg_verb_base.get_uri() + '/%d' % priority, create=True)
@@ -1122,6 +1130,7 @@ class ClassSubject(models.Model):
     grade_min = models.IntegerField()
     grade_max = models.IntegerField()
     class_size_min = models.IntegerField(blank=True, null=True)
+    hardness_rating = models.TextField()
     class_size_max = models.IntegerField()
     schedule = models.TextField(blank=True)
     prereqs  = models.TextField(blank=True, null=True)
@@ -1143,7 +1152,7 @@ class ClassSubject(models.Model):
     meeting_times = models.ManyToManyField(Event, blank=True)
 
     def get_sections(self):
-        if not hasattr(self, "_sections"):
+        if not hasattr(self, "_sections") or self._sections is None:
             self._sections = self.sections.all()
 
         return self._sections
@@ -1183,7 +1192,7 @@ class ClassSubject(models.Model):
 
     def _get_capacity(self):
         c = 0
-        for s in self.sections.all():
+        for s in self.get_sections():
             c += s.capacity
         return c
     capacity = property(_get_capacity)
@@ -1194,8 +1203,6 @@ class ClassSubject(models.Model):
 
     def get_section(self, timeslot=None):
         """ Cache sections for a class.  Always use this function to get a class's sections. """
-
-    
         # If we happen to know our own sections from a subquery:
         did_search = True
 
@@ -1204,14 +1211,12 @@ class ClassSubject(models.Model):
                 if not hasattr(s, "_events"):
                     did_search = False
                     break
-                if timeslot in s._events:
+                if timeslot in s._events or timeslot == None:
                     return s
 
             if did_search: # If we did successfully search all sections, but found none in this timeslot
                 return None
             #If we didn't successfully search all sections, go and do it the old-fashioned way:
-
-        print "Couldn't find section!"
             
         from django.core.cache import cache
 
@@ -1223,7 +1228,6 @@ class ClassSubject(models.Model):
         # Encode None as a string... silly, I know.   -Michael P
         val = cache.get(key) 
         if val:
-            # print 'hit cache for %s' % key
             if val is not None:
                 if val == 'None':
                     return None
@@ -1239,7 +1243,6 @@ class ClassSubject(models.Model):
         else:
             result = self.default_section()
             
-        # print 'set cache for %s' % key
         if result is not None:
             cache.set(key, result)
         else:
@@ -1258,10 +1261,15 @@ class ClassSubject(models.Model):
         else:
             return sec_qs[0]
 
-    def add_section(self, duration=0.0, status=0):
+    def add_section(self, duration=None, status=None):
         """ Add a ClassSection belonging to this class. Can be run multiple times. """
         
         section_index = self.sections.count() + 1
+
+        if duration is None:
+            duration = self.duration
+        if status is None:
+            status = self.status
         
         new_section = ClassSection()
         new_section.parent_class = self
@@ -1270,6 +1278,8 @@ class ClassSubject(models.Model):
         new_section.status = status
         new_section.save()
         self.sections.add(new_section)
+        
+        self._sections = None
         
         return new_section
 
@@ -1414,19 +1424,28 @@ class ClassSubject(models.Model):
         
         if anchor:
             anchor.delete(True)
+                
+    def numStudentAppQuestions(self):
+        # This field may be prepopulated by .objects.catalog()
+        if not hasattr(self, "_studentapps_count"):
+            self._studentapps_count = self.studentappquestion_set.count()
+            
+        return self._studentapps_count
+        
         
     def cache_time(self):
         return 99999
     
+    @cache_function
     def title(self):
-        retVal = self.cache['title']
-        if retVal:
-            return retVal
-        
-        retVal = self.anchor.friendly_name
-
-        self.cache['title'] = retVal
-        return retVal
+        print 'recomputing title for cls#%d' % self.id
+        return self.anchor.friendly_name
+    def title_selector(node):
+        print 'checking title; %s' % node.classsubject_set.all()
+        if node.classsubject_set.all().count == 1:
+            return {'self': node.classsubject_set.all()[0]}
+        return {}
+    title.depend_on_row(lambda: DataTree, title_selector)
     
     @cache_function
     def teachers(self):
@@ -1493,8 +1512,12 @@ class ClassSubject(models.Model):
 
     def cannotAdd(self, user, checkFull=True, request=False, use_cache=True):
         """ Go through and give an error message if this user cannot add this class to their schedule. """
-        if not user.isStudent():
+        if not user.isStudent() and not Tag.getTag("allowed_student_types", target=self.parent_program):
             return 'You are not a student!'
+
+        blocked_student_types = Tag.getTag("blocked_student_types", target=self)
+        if blocked_student_types and not (set(user.getUserTypes()) & set(blocked_student_types.split(","))):
+            return "Cannot accept more users of your account type!"
         
         if not self.isAccepted():
             return 'This class is not accepted.'
@@ -1504,22 +1527,24 @@ class ClassSubject(models.Model):
             return 'This program cannot accept any more students!  Please try again in its next session.'
 
         if checkFull and self.isFull(use_cache=use_cache):
-            return 'Class is full!'
+            scrmi = self.parent_program.getModuleExtension('StudentClassRegModuleInfo')
+            return scrmi.temporarily_full_text
 
         if request:
             verb_override = request.get_node('V/Flags/Registration/GradeOverride')
         else:
             verb_override = GetNode('V/Flags/Registration/GradeOverride')
 
-        if user.getGrade() < self.grade_min or \
-               user.getGrade() > self.grade_max:
-            if not UserBit.UserHasPerms(user = user,
-                                        qsc  = self.anchor,
-                                        verb = verb_override):
-                return 'You are not in the requested grade range for this class.'
+        if not Tag.getTag("allowed_student_types", target=self.parent_program):
+            if user.getGrade() < self.grade_min or \
+                    user.getGrade() > self.grade_max:
+                if not UserBit.UserHasPerms(user = user,
+                                            qsc  = self.anchor,
+                                            verb = verb_override):
+                    return 'You are not in the requested grade range for this class.'
 
         # student has no classes...no conflict there.
-        if user.getEnrolledClasses(self.parent_program, request).count() == 0:
+        if user.getClasses(self.parent_program, verbs=[self.parent_program.getModuleExtension('StudentClassRegModuleInfo').signup_verb.name]).count() == 0:
             return False
 
         for section in self.sections.all():
@@ -1598,7 +1623,7 @@ class ClassSubject(models.Model):
                             return True
         return False
 
-    def isAccepted(self): return self.status == 10
+    def isAccepted(self): return self.status > 0
     def isReviewed(self): return self.status != 0
     def isRejected(self): return self.status == -10
     def isCancelled(self): return self.status == -20
@@ -1757,7 +1782,7 @@ was approved! Please go to http://esp.mit.edu/teach/%s/class_status/%s to view y
         if self.prereqs and len(self.prereqs) > 0:
             result.description += '\n\nThe prerequisites for this class were: %s' % self.prereqs
         result.teacher_ids = '|' + '|'.join([str(t.id) for t in self.teachers()]) + '|'
-        all_students = self.students() + self.students_old()
+        all_students = self.students()
         result.student_ids = '|' + '|'.join([str(s.id) for s in all_students]) + '|'
         result.original_id = self.id
         
@@ -1766,7 +1791,7 @@ was approved! Please go to http://esp.mit.edu/teach/%s/class_status/%s to view y
         
         return result
         
-    def archive(self):
+    def archive(self, delete=False):
         """ Archive a class to reduce the size of the database. """
         from esp.resources.models import ResourceRequest, ResourceAssignment
         
@@ -1775,12 +1800,13 @@ was approved! Please go to http://esp.mit.edu/teach/%s/class_status/%s to view y
         
         #   Delete user bits and resource stuff associated with the class.
         #   (Currently leaving ResourceAssignments alone so that schedules can be viewed.)
-        UserBit.objects.filter(qsc=self.anchor).delete()
-        ResourceRequest.objects.filter(target_subj=self).delete()
-        #   ResourceAssignment.objects.filter(target_subj=self).delete()
-        for s in self.sections.all():
-            ResourceRequest.objects.filter(target=s).delete()
-            #   ResourceAssignment.objects.filter(target=s).delete()
+        if delete:
+            UserBit.objects.filter(qsc=self.anchor).delete()
+            ResourceRequest.objects.filter(target_subj=self).delete()
+            #   ResourceAssignment.objects.filter(target_subj=self).delete()
+            for s in self.sections.all():
+                ResourceRequest.objects.filter(target=s).delete()
+                #   ResourceAssignment.objects.filter(target=s).delete()
         
         #   This function leaves the actual ClassSubject object, its ClassSections,
         #   and the QSD pages alone.

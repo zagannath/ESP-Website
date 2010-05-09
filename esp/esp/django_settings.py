@@ -42,10 +42,10 @@ Email: web@esp.mit.edu
 #  you really don't want to leave this as is. #
 ###############################################
 
-SITE_INFO = (1, 'esp.mit.edu', 'Main ESP Site')
+SITE_INFO = (1, 'splashchicago.learningu.org', 'Main ESP Site')
 
 # Must be unique for every site hosted
-CACHE_PREFIX="ESP"
+CACHE_PREFIX="ChicagoESP"
 
 
 ###########################
@@ -79,7 +79,7 @@ INTERNAL_IPS = (
 # Default admins #
 ##################
 ADMINS = (
-    ('LU Webmasters', 'serverlog@lists.learningu.org'),
+    ('LU Web Team','serverlog@lists.learningu.org'),
 )
 
 
@@ -88,13 +88,13 @@ ADMINS = (
 ##########################
 EMAIL_HOST   = 'localhost'
 EMAIL_PORT   = '25'
-SERVER_EMAIL = 'server@esp.mit.edu'
+SERVER_EMAIL = 'server@queens.learningu.org'
 EMAIL_SUBJECT_PREFIX = '[ ESP ERROR ] '
 
 # Default addresses to send archive/bounce info to
 DEFAULT_EMAIL_ADDRESSES = {
     'archive': 'learninguarchive@gmail.com',
-    'bounces': 'bounces@lists.learningu.org'
+    'bounces': 'learningubounces@gmail.com'
 }
 
 
@@ -124,13 +124,13 @@ TEMPLATE_LOADERS = (
 
 # Set MIDDLEWARE_LOCAL in local_settings.py to configure this
 MIDDLEWARE_GLOBAL = [
-    ( 100, 'django.middleware.http.SetRemoteAddrFromForwardedFor'),
+   #( 100, 'django.middleware.http.SetRemoteAddrFromForwardedFor'),
    #( 200, 'esp.queue.middleware.QueueMiddleware'),
     ( 300, 'esp.middleware.FixIEMiddleware'),
     ( 500, 'esp.middleware.ESPErrorMiddleware'),
    #( 600, 'esp.middleware.psycomiddleware.PsycoMiddleware'),
     ( 700, 'django.middleware.common.CommonMiddleware'),
-   #( 800, 'esp.middleware.esp_sessions.SessionMiddleware'),
+   #( 800, 'esp.middleware.esp_sessions.SessionMiddleware'),  # DEPRECATED -- Relies on mem_db, which is currently nonfunctional
     ( 900, 'django.contrib.sessions.middleware.SessionMiddleware'),
     (1000, 'esp.middleware.ESPAuthMiddleware'),
     (1100, 'django.middleware.doc.XViewMiddleware'),
@@ -177,8 +177,9 @@ INSTALLED_APPS = (
     'esp.utils',    # Not a real app, but, has test cases that the test-case runner needs to find
     'esp.cache',
     'esp.cache_loader',
-#    'django_evolution',
-#    'django_command_extensions',
+    'esp.tagdict',
+    'django_extensions',
+    'south',
 )
 import os
 for app in ('django_evolution', 'django_command_extensions'):
@@ -188,7 +189,7 @@ for app in ('django_evolution', 'django_command_extensions'):
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE=True
 
-#SESSION_ENGINE="django.contrib.sessions.backends.cache"
+SESSION_ENGINE="django.contrib.sessions.backends.cached_db"
 
 TEMPLATE_CONTEXT_PROCESSORS = ('esp.context_processors.media_url', # remove this one after all branches are transitioned
                                'esp.context_processors.esp_user',
@@ -207,3 +208,7 @@ USE_I18N = False
 AUTH_PROFILE_MODULE='users.ESPUser_Profile'
 
 FORCE_SCRIPT_NAME = ''
+
+# Page to redirect people to when they log in
+# (Could be '/' for example)
+DEFAULT_REDIRECT = '/myesp/redirect'

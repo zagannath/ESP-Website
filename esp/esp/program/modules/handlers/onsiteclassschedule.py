@@ -80,14 +80,7 @@ class OnsiteClassSchedule(ProgramModuleObj):
         module.user = self.user
         module.program = self.program
         
-        new_kwargs = {}
-
-        if 'extra' in kwargs:
-            extra = kwargs['extra']
-        else:
-            extra = 'pdf'
-
-        return module.studentschedules(request, args[0], args[1], args[2], args[3], extra, args[5], onsite=True, format=format)
+        return module.studentschedules(request, *args, **kwargs)
 
 
     @main_call
@@ -96,7 +89,7 @@ class OnsiteClassSchedule(ProgramModuleObj):
         """ Redirect to student registration, having morphed into the desired
         student. """
 
-        user, found = search_for_user(request, ESPUser.getAllOfType('Student', False))
+        user, found = search_for_user(request)
         if not found:
             return user
         

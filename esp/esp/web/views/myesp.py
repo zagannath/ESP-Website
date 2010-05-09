@@ -35,13 +35,14 @@ from esp.datatree.models import *
 from esp.miniblog.models import AnnouncementLink, Entry
 from esp.miniblog.views import preview_miniblog
 from esp.program.models import Program, RegistrationProfile, ClassSubject
+from esp.tagdict.models import Tag
 from django.http import Http404, HttpResponseRedirect
 #from icalendar import Calendar, Event as CalEvent, UTC
 import datetime
 from esp.middleware import ESPError
 from esp.users.forms.password_reset import UserPasswdForm
 from esp.web.util.main import render_to_response
-from esp.users.forms.user_profile import StudentProfileForm, TeacherProfileForm, GuardianProfileForm, EducatorProfileForm, UserContactForm
+from esp.users.forms.user_profile import StudentProfileForm, TeacherProfileForm, GuardianProfileForm, EducatorProfileForm, UserContactForm, UofCProfileForm, AlumProfileForm, UofCProfForm, VisitingGenericUserProfileForm
 from django.db.models.query import Q
 
 
@@ -250,7 +251,8 @@ def edit_profile(request, module):
 		return profile_editor(request, None, True, 'educator')	
 
 	else:
-		return profile_editor(request, None, True, '')
+		user_types = UserBit.valid_objects().filter(verb__parent=GetNode("V/Flags/UserRole")).select_related().order_by('-id')
+		return profile_editor(request, None, True, user_types[0].verb.name if user_types else '')
 
 @login_required
 def profile_editor(request, prog_input=None, responseuponCompletion = True, role=''):
@@ -276,18 +278,30 @@ def profile_editor(request, prog_input=None, responseuponCompletion = True, role
     curUser.updateOnsite(request)
 
     FormClass = {'': UserContactForm,
-               'student': StudentProfileForm,
-               'teacher': TeacherProfileForm,
-               'guardian': GuardianProfileForm,
-               'educator': EducatorProfileForm}[role]
+		 'student': StudentProfileForm,
+		 'teacher': TeacherProfileForm,
+		 'guardian': GuardianProfileForm,
+		 'educator': EducatorProfileForm,
+		 'Student': StudentProfileForm,
+		 'Teacher': TeacherProfileForm,
+		 'Guardian': GuardianProfileForm,
+		 'Educator': EducatorProfileForm,
+		 'UTEPAlum': EducatorProfileForm,
+		 'TeacherAndUofCAlum': EducatorProfileForm,
+		 'UofCAlum': AlumProfileForm,
+		 'UofCProfessor': UofCProfForm,
+		 'UofCStudent': UofCProfileForm,
+		 'UTEPStudent': UofCProfileForm,
+		 'Other': VisitingGenericUserProfileForm,
+		 }[role]
     context['profiletype'] = role
 
     if request.method == 'POST' and request.POST.has_key('profile_page'):
-        form = FormClass(curUser, request.POST)
+	form = FormClass(curUser, request.POST)
 
         # Don't suddenly demand an explanation from people who are already student reps
         if UserBit.objects.UserHasPerms(curUser, STUDREP_QSC, STUDREP_VERB):
-            if hasattr(form, 'repress_studentrep_expl_error'):
+	    if hasattr(form, 'repress_studentrep_expl_error'):
                 form.repress_studentrep_expl_error()
 
         if form.is_valid():
@@ -325,8 +339,13 @@ def profile_editor(request, prog_input=None, responseuponCompletion = True, role
                 regProf.teacher_info = TeacherInfo.addOrUpdate(curUser, regProf, new_data)
             elif role == 'guardian':
                 regProf.guardian_info = GuardianInfo.addOrUpdate(curUser, regProf, new_data)
-            elif role == 'educator':
+	    elif role == 'educator':
                 regProf.educator_info = EducatorInfo.addOrUpdate(curUser, regProf, new_data)
+	    else:
+	        # TeacherInfo is the default form for now
+		regProf.teacher_info = TeacherInfo.addOrUpdate(curUser, regProf, new_data)
+		
+	    
             blah = regProf.__dict__
             regProf.save()
 
@@ -337,30 +356,52 @@ def profile_editor(request, prog_input=None, responseuponCompletion = True, role
             if responseuponCompletion == True:
                 # prepare the rendered page so it points them to open student/teacher reg's
                 ctxt = {}
-                userrole = {}
-                if curUser.isStudent():
-                    userrole['name'] = 'Student'
-                    userrole['base'] = 'learn'
-                    userrole['reg'] = 'studentreg'
-                    regverb = GetNode('V/Deadline/Registration/Student/Classes/OneClass')
-                elif curUser.isTeacher():
-                    userrole['name'] = 'Teacher'
-                    userrole['base'] = 'teach'
-                    userrole['reg'] = 'teacherreg'
+		class UserRole(object):
+                    pass
+
+                userrole = UserRole()
+		userrole_teachers = UserRole()
+		userrole_students = UserRole()
+
+		userrole_teachers.name = 'Teacher'
+		userrole_teachers.base = 'teach'
+		userrole_teachers.reg = 'teacherreg'
+
+		userrole_students.name = 'Student'
+		userrole_students.base = 'learn'
+		userrole_students.reg = 'studentreg'
+
+                if curUser.isTeacher():
+                    userrole = userrole_teachers
                     regverb = GetNode('V/Deadline/Registration/Teacher/Classes')
-                ctxt['userrole'] = userrole
-                
-                if curUser.isStudent() or curUser.isTeacher():
-                    progs = UserBit.find_by_anchor_perms(Program, user=curUser, verb=regverb)
-                    nextreg = UserBit.objects.filter(user__isnull=True, verb=regverb, startdate__gt=datetime.datetime.now()).order_by('startdate')
-                    ctxt['prog'] = prog
-                    ctxt['nextreg'] = list(nextreg)
-                    if len(progs) == 1:
-                        return HttpResponseRedirect(u'/%s/%s/%s' % (userrole['base'], progs[0].getUrlBase(), userrole['reg']))
-                    else:
-                        return render_to_response('users/profile_complete.html', request, navnode, ctxt)
                 else:
-                    return render_to_response('users/profile_complete.html', request, navnode, ctxt)
+                    userrole = userrole_students
+		    regverb = GetNode('V/Deadline/Registration/Student/Classes/OneClass')
+
+		progs_userbit = [(x, userrole) for x in UserBit.find_by_anchor_perms(Program, user=curUser, verb=regverb)]
+		progs_student_tag = [(x, userrole_students) for x in \
+					      list(t.target \
+							   for t in Tag.objects.filter(key = "allowed_student_types").select_related() \
+							   if isinstance(t.target, Program) \
+							   and (set(curUser.getUserTypes()) & set(t.value.split(","))))]
+		progs_teacher_tag = [(x, userrole_teachers) for x in \
+					     list(t.target \
+							  for t in Tag.objects.filter(key = "allowed_teacher_types").select_related() \
+							  if isinstance(t.target, Program) \
+							  and (set(curUser.getUserTypes()) & set(t.value.split(","))))]
+		progs = set(progs_userbit + progs_student_tag + progs_teacher_tag)
+			
+                ctxt['userrole'] = userrole                
+		ctxt['navnode'] = navnode
+
+		nextreg = UserBit.objects.filter(user__isnull=True, verb=regverb, startdate__gt=datetime.datetime.now()).order_by('startdate')
+		if len(progs) == 1:
+			prog = progs.pop()
+			return HttpResponseRedirect(u'/%s/%s/%s' % (prog[1].base, prog[0].getUrlBase(), prog[1].reg))
+		else:
+			ctxt['progs'] = progs
+			ctxt['nextreg'] = list(nextreg)
+                        return render_to_response('users/profile_complete.html', request, navnode, ctxt)		    
             else:
                 return True
         else:

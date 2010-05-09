@@ -28,7 +28,7 @@ MIT Educational Studies Program,
 Phone: 617-253-4882
 Email: web@esp.mit.edu
 """
-from esp.program.modules.base import ProgramModuleObj, needs_teacher, needs_student, needs_admin, usercheck_usetl, needs_onsite, main_call, aux_call
+from esp.program.modules.base import ProgramModuleObj, needs_teacher, needs_student, needs_admin, usercheck_usetl, needs_onsite, needs_onsite_no_switchback, main_call, aux_call
 from esp.program.modules import module_ext
 from esp.web.util        import render_to_response
 from django.contrib.auth.decorators import login_required
@@ -42,6 +42,7 @@ from esp.web.util.latex  import render_to_latex
 from esp.accounting_docs.models import Document, MultipleDocumentError
 from esp.accounting_core.models import LineItem, LineItemType, Transaction
 from esp.middleware import ESPError
+from django.template.loader import select_template
 
 class ProgramPrintables(ProgramModuleObj):
     """ This is extremely useful for printing a wide array of documents for your program.
@@ -192,7 +193,10 @@ class ProgramPrintables(ProgramModuleObj):
                                       {'clsids': clsids, 'classes': classes, 'sorting_options': cmp_fn.keys(), 'sort_name_list': ",".join(sort_name_list), 'sort_name_list_orig': sort_name_list })
 
         
-        classes = list(ClassSubject.objects.filter(parent_program = self.program, status=10))
+        classes = list(ClassSubject.objects.catalog(prog))
+
+        if request.GET.has_key("only_nonfull"):
+            classes = [x for x in classes if not x.isFull()]
 
         sort_list_reversed = sort_list
         sort_list_reversed.reverse()
@@ -411,10 +415,8 @@ class ProgramPrintables(ProgramModuleObj):
 
         for teacher in teachers:
             # get list of valid classes
-            classes = [ cls for cls in teacher.getTaughtSections()
-                    if cls.parent_program == self.program
-                    and cls.isAccepted()
-                    and cls.meeting_times.count() > 0]
+            classes = [ cls for cls in teacher.getTaughtSections(self.program)
+                    if cls.isAccepted() and cls.meeting_times.count() > 0 ]
             # now we sort them by time/title
             classes.sort()
 
@@ -780,7 +782,7 @@ Student schedule for %s:
             else:
                 rooms = ' ' + ", ".join(rooms)
                 
-            schedule += '%s|%s|%s\n' % ((' '+",".join(cls.friendly_times())).ljust(24), (' ' + cls.title).ljust(40), rooms)
+            schedule += '%s|%s|%s\n' % ((' '+",".join(cls.friendly_times())).ljust(24), (' ' + cls.title()).ljust(40), rooms)
                
         return schedule
 
@@ -823,11 +825,12 @@ Student schedule for %s:
             except MultipleDocumentError:
                 invoice = Document.get_invoice(student, self.program_anchor_cached(parent=True), li_types, dont_duplicate=True)
 
-            writer.writerow((invoice.locator, student.id, student.last_name, student.first_name, invoice.cost()))
+            writer.writerow((invoice.locator, student.id, student.last_name.encode('ascii', 'replace'), student.first_name.encode('ascii', 'replace'), invoice.cost()))
                 
         return response
         
     @aux_call
+    @needs_onsite_no_switchback
     def studentschedules(self, request, tl, one, two, module, extra, prog, onsite=False):
         """ generate student schedules """
         
@@ -865,6 +868,7 @@ Student schedule for %s:
             # now we sort them by time/title
             classes.sort()
 
+            """
             # now we insert compulsory events and empty blocks
             for c in all_events:
                 # find the first class that begins after the compulsory event ends
@@ -873,7 +877,26 @@ Student schedule for %s:
                         if i == 0 or (type(classes[i-1]) == ClassSection and classes[i-1].start_time().end < c.end) or (type(classes[i-1]) == Event and classes[i-1].end < c.end):
                             classes.insert(i, c)
                             break
-            
+            """
+            # actually, just insert every block that isn't taken by a class
+            all_class_events = []
+            for cls in classes:
+                for t in cls.meeting_times.all():
+                    if t.id not in all_class_events:
+                        all_class_events.append(t.id)
+            ts = all_events.exclude(id__in=all_class_events)
+            for t in ts:
+                after_end = True
+                for i in range(0, len(classes)):
+                     if type(classes[i]) == ClassSection and classes[i].start_time().start >= t.end:
+                         classes.insert(i, t)
+                         after_end = False
+                         break
+                     if type(classes[i]) == ClassSection and classes[i].meeting_times.order_by('-end')[0].end > t.end:
+                         after_end = False
+                if after_end:
+                    classes.append(t)
+           
             # note whether student is in parent program
             student.in_parent_program = False
             if parent_program_students_classreg is not None:
@@ -901,6 +924,7 @@ Student schedule for %s:
             student.classes = classes
             
         context['students'] = students
+        context['program'] = self.program
         
         if extra:
             file_type = extra.strip()
@@ -910,11 +934,12 @@ Student schedule for %s:
         from django.conf import settings
         context['PROJECT_ROOT'] = settings.PROJECT_ROOT
             
-        if format == 'html':
+        if file_type == 'html':
             return render_to_response(self.baseDir()+'studentschedule.html', request, (prog, tl), context)
         else:  # elif format == 'pdf':
             from esp.web.util.latex import render_to_latex
-            return render_to_latex(self.baseDir()+'studentschedule.tex', context, file_type)
+            schedule_template = select_template([self.baseDir()+'program_custom_schedules/%s_studentschedule.tex' %(self.program.id), self.baseDir()+'studentschedule.tex'])
+            return render_to_latex(schedule_template, context, file_type)
 
     @aux_call
     @needs_admin
@@ -957,8 +982,8 @@ Student schedule for %s:
         """ generate class room rosters"""
         from esp.cal.models import Event
         
-        classes = [ cls for cls in self.program.sections()
-                    if cls.isAccepted()                      ]
+        classes = list(self.program.sections().filter(status=10, parent_class__status=10))
+
         context = {}
         classes.sort()
 
@@ -977,13 +1002,13 @@ Student schedule for %s:
                         rooms[room.name] = [update_dict]
             
         for room_name in rooms:
-            rooms[room_name].sort(key=lambda x: x['timeblock'])
+            rooms[room_name].sort(key=lambda x: x['timeblock'].start)
             for val in rooms[room_name]:
                 scheditems.append(val)
                 
         context['scheditems'] = scheditems
 
-        return render_to_response(self.baseDir()+'roomrosters.html', request, (prog, tl), context)            
+        return render_to_response(self.baseDir()+'roomrosters.html', request, (prog, tl), context)
         
     @aux_call
     @needs_admin
@@ -1021,8 +1046,7 @@ Student schedule for %s:
             return filterObj
 
         context = {'module': self     }
-        students = [ ESPUser(user) for user in User.objects.filter(filterObj.get_Q()).distinct()]
-
+        students = list(ESPUser.objects.filter(filterObj.get_Q()).distinct())
         students.sort()
                                     
         finished_verb = GetNode('V/Finished')
@@ -1032,7 +1056,13 @@ Student schedule for %s:
             
         expanded = [[] for i in range(numperpage)]
 
-        users = students
+        users = []
+        for u in students:
+            if u and u.id:
+                for sec in u.getSections(prog):
+                    u = ESPUser(u)
+                    u.sec = sec
+                    users.append(u)
             
         for i in range(len(users)):
             expanded[(i*numperpage)/len(users)].append(users[i])
@@ -1046,6 +1076,7 @@ Student schedule for %s:
                 else:
                     users.append(expanded[j][i])
         students = users
+
         return render_to_response(self.baseDir()+'SATPrepLabels_print.html', request, (prog, tl), {'students': students})
 
             
@@ -1189,7 +1220,7 @@ Student schedule for %s:
         scheditems = []
 
         for teacher in teachers:
-            for cls in teacher.getTaughtClasses().filter(parent_program = self.program):
+            for cls in teacher.getTaughtClasses(self.program):
                 if cls.isAccepted():
                     scheditems.append({'teacher': teacher,
                                        'cls'    : cls})
@@ -1226,8 +1257,16 @@ Student schedule for %s:
         studentList = []
         for student in students:
             paid_symbol = ''
+            finaid_status = 'None'
+            if student.appliedFinancialAid(prog):
+                if student.financialaidrequest_set.filter(program=prog).order_by('-id')[0].reduced_lunch:
+                    finaid_status = 'Req. (RL)'
+                else:
+                    finaid_status = 'Req. (No RL)'
+            
             if student.hasFinancialAid(self.program_anchor_cached()):
                 paid_symbol = 'X'
+                finaid_status = 'Approved'
             else:
                 li_types = prog.getLineItemTypes(student)
                 try:

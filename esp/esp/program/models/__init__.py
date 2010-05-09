@@ -154,7 +154,7 @@ class ArchiveClass(models.Model):
     program = models.CharField(max_length=256)
     year = models.CharField(max_length=4)
     date = models.CharField(max_length=128)
-    category = models.CharField(max_length=16)
+    category = models.CharField(max_length=32)
     teacher = models.CharField(max_length=1024)
     title = models.CharField(max_length=1024)
     description = models.TextField()
@@ -418,9 +418,9 @@ class Program(models.Model):
         # This technically has a bug because of copy-on-write, but the other code has it too, and
         # our copy-on-write system isn't good enough yet to make checking duplicates feasible
         lists['all_current_students'] = {'description': 'Current students in all of ESP',
-                'list': students_Q & Q(registrationprofile__student_info__graduation_year__lte = yog_12)}
+                'list': students_Q & Q(registrationprofile__student_info__graduation_year__gte = yog_12)}
         lists['all_former_students'] = {'description': 'Former students in all of ESP',
-                'list': students_Q & Q(registrationprofile__student_info__graduation_year__gt = yog_12)}
+                'list': students_Q & Q(registrationprofile__student_info__graduation_year__lt = yog_12)}
 
         lists['emaillist'] = {'description':
                       """All users in our mailing list without an account.""",
@@ -498,6 +498,18 @@ class Program(models.Model):
     
     def classes_node(self):
         return DataTree.objects.get(parent = self.anchor, name = 'Classes')
+
+    @cache_function
+    def getScheduleConstraints(self):
+        return ScheduleConstraint.objects.filter(program=self).select_related()
+    def get_sc_model():
+        from esp.program.models import ScheduleConstraint
+        return ScheduleConstraint
+    def get_bt_model():
+        from esp.program.models import BooleanToken
+        return BooleanToken    
+    getScheduleConstraints.depend_on_model(get_sc_model)
+    getScheduleConstraints.depend_on_model(get_bt_model)
 
     def isConfirmed(self, espuser):
         v = GetNode('V/Flags/Public')
@@ -611,8 +623,28 @@ class Program(models.Model):
             are grabbed.  The default excludes 'compulsory' events, which are
             not intended to be used for classes (they're for lunch, photos, etc.)
         """
-        return Event.objects.filter(anchor=self.anchor).exclude(event_type__description__in=exclude_types).order_by('start')
+        return Event.objects.filter(anchor=self.anchor).exclude(event_type__description__in=exclude_types).select_related('event_type').order_by('start')
 
+    #   In situations where you just want a list of all time slots in the program,
+    #   that can be cached.
+    @cache_function
+    def getTimeSlotList(self, exclude_compulsory=True):
+        if exclude_compulsory:
+            return list(self.getTimeSlots(exclude_types=['Compulsory']))
+        else:
+            return list(self.getTimeSlots(exclude_types=[]))
+    getTimeSlotList.depend_on_model(lambda: Event)
+    
+    #   In situations where you just want a list of all time slots in the program,
+    #   that can be cached.
+    @cache_function
+    def getTimeSlotList(self, exclude_compulsory=True):
+        if exclude_compulsory:
+            return list(self.getTimeSlots(exclude_types=['Compulsory']))
+        else:
+            return list(self.getTimeSlots(exclude_types=[]))
+    getTimeSlotList.depend_on_model(lambda: Event)
+    
     def total_duration(self):
         """ Returns the total length of the events in this program, as a timedelta object. """
         ts_list = Event.collapse(list(self.getTimeSlots()), tol=timedelta(minutes=15))
@@ -720,6 +752,7 @@ class Program(models.Model):
             return Program.objects.filter(id=-1)
         return Program.objects.filter(anchor__parent__in=self.anchor['Subprograms'].children())
     
+    @cache_function
     def getParentProgram(self):
         #   Ridiculous syntax is actually correct for our subprograms scheme.
         pl = []
@@ -729,6 +762,7 @@ class Program(models.Model):
             return pl[0]
         else:
             return None
+    getParentProgram.depend_on_model(lambda: Program)
         
     def getLineItemTypes(self, user=None, required=True):
         from esp.accounting_core.models import LineItemType, Balance
@@ -787,10 +821,21 @@ class Program(models.Model):
                 module.setUser(user)
         return modules
     
-    @cache_function
     def getModuleExtension(self, ext_name_or_cls, module_id=None):
         """ Get the specified extension (e.g. ClassRegModuleInfo) for a program.
         This avoids actually looking up the program module first. """
+        # We don't actually want to cache this in memcached:
+        # If its value changes in the middle of a page load, we don't want to switch to the new value.
+        # Also, the method is called quite often, so it adds cache load.
+        # Program objects are assumed to not persist across page loads generally,
+        # so the following should be marginally safer:
+        
+        if not hasattr(self, "_moduleExtension"):
+            self._moduleExtension = {}
+
+        key = (ext_name_or_cls, module_id)
+        if key in self._moduleExtension:
+            return self._moduleExtension[key]
         
         ext_cls = None
         if type(ext_name_or_cls) == str or type(ext_name_or_cls) == unicode:
@@ -812,15 +857,9 @@ class Program(models.Model):
             except:
                 extension = None
                 
+        self._moduleExtension[key] = extension
+                
         return extension
-    #   Depend on all module extensions (kind of ugly, but at least we don't change those too frequently).
-    #   Ideally this could be autodetected by importing everything from module_ext first, but I ran into
-    #   a circular import problem.   -Michael P
-    getModuleExtension.depend_on_model(lambda: get_model('esp.program.modules.module_ext', 'ClassRegModuleInfo'))
-    getModuleExtension.depend_on_model(lambda: get_model('esp.program.modules.module_ext', 'StudentClassRegModuleInfo'))
-    getModuleExtension.depend_on_model(lambda: get_model('esp.program.modules.module_ext', 'SATPrepAdminModuleInfo'))
-    getModuleExtension.depend_on_model(lambda: get_model('esp.program.modules.module_ext', 'CreditCardModuleInfo'))
-    getModuleExtension.depend_on_model(lambda: get_model('esp.program.modules.module_ext', 'SATPrepTeacherModuleInfo'))
 
     def getColor(self):
         if hasattr(self, "_getColor"):
@@ -969,7 +1008,7 @@ class RegistrationProfile(models.Model):
         
         if isinstance(user.id, int):
             try:
-                regProf = RegistrationProfile.objects.filter(user__exact=user).latest('last_ts')
+                regProf = RegistrationProfile.objects.filter(user__exact=user).select_related().latest('last_ts')
             except:
                 pass
 
@@ -1000,10 +1039,10 @@ class RegistrationProfile(models.Model):
         self.last_ts = datetime.now()
         super(RegistrationProfile, self).save(*args, **kwargs)
         
-    @staticmethod
+    @cache_function
     def getLastForProgram(user, program):
         """ Returns the newest RegistrationProfile attached to this user and this program (or any ancestor of this program). """
-        regProfList = RegistrationProfile.objects.filter(user__exact=user,program__exact=program).order_by('-last_ts','-id')[:1]
+        regProfList = RegistrationProfile.objects.filter(user__exact=user,program__exact=program).select_related().order_by('-last_ts','-id')[:1]
         if len(regProfList) < 1:
             # Has this user already filled out a profile for the parent program?
             parent_program = program.getParentProgram()
@@ -1023,6 +1062,8 @@ class RegistrationProfile(models.Model):
         else:
             regProf = regProfList[0]
         return regProf
+    getLastForProgram.depend_on_row(lambda: RegistrationProfile, lambda rp: {'user': rp.user, 'program': rp.program})
+    getLastForProgram = staticmethod(getLastForProgram)
             
     def __unicode__(self):
         if self.program is None:
@@ -1050,7 +1091,7 @@ class RegistrationProfile(models.Model):
     
     #   Note: these functions return ClassSections, not ClassSubjects.
     def preregistered_classes(self):
-        return ESPUser(self.user).getSections(program=self.program)
+        return ESPUser(self.user).getSectionsFromProgram(self.program)
     
     def registered_classes(self):
         return ESPUser(self.user).getEnrolledSections(program=self.program)
@@ -1168,14 +1209,26 @@ class FinancialAidRequest(models.Model):
         inv = Document.get_invoice(self.user, anchor)
         txn = inv.txn
         funding_node = anchor['Accounts']
-       
-        #   Find the amount we're charging the student for the program and ensure
-        #   that we don't award more financial aid than charges.
-        charges = txn.lineitem_set.filter(QTree(anchor__below=anchor), anchor__parent__name='LineItemTypes',)
-       
+        
+        #   Find the amount we're charging the student for the program.
+        #charges = txn.lineitem_set.filter(QTree(anchor__below=anchor), anchor__parent__name='LineItemTypes',)
+        charges = txn.lineitem_set.filter(QTree(anchor__below=anchor)).exclude(li_type__text__startswith='Financial Aid')
         chg_amt = 0
         for li in charges:
-            chg_amt += li.amount
+            chg_amt += li.amount - li.li_type.finaid_amount
+        
+        #   Check if the student was granted exactly the bare admission cost of the program.
+        required_types = LineItemType.objects.filter(anchor=self.program.anchor['LineItemTypes']['Required'])
+        admission_cost = 0
+        for type in required_types:
+            admission_cost += type.amount
+            
+        #   If they were, go ahead and give them financial aid for their other line items.
+        #   Otherwise, give them financial aid for the stated amount received.
+        if self.amount_received > 0 and admission_cost == -self.amount_received:
+            self.amount_received = -chg_amt
+
+        #   Ensure that the financial aid is not larger than the amount they owe.
         if self.amount_received > (-chg_amt):
             self.amount_received = -chg_amt
         
@@ -1257,8 +1310,10 @@ class BooleanToken(models.Model):
     def __unicode__(self):
         return '[%d] %s' % (self.seq, self.text)
 
+    @cache_function
     def subclass_instance(self):
         return get_subclass_instance(BooleanToken, self)
+    subclass_instance.depend_on_row(lambda:BooleanToken, lambda bt: {'self': bt})
 
     @staticmethod
     def evaluate(stack, *args, **kwargs):
@@ -1270,7 +1325,6 @@ class BooleanToken(models.Model):
         stack = list(stack)
         while (value is None) and (len(stack) > 0):
             token = stack.pop().subclass_instance()
-            #   print 'Popped token: %s' % token.text
             
             # Handle possibilities for what the token might be:
             if (token.text == '||') or (token.text.lower() == 'or'):
@@ -1291,8 +1345,7 @@ class BooleanToken(models.Model):
                 # - direct boolean value
                 # Pass along arguments
                 value = token.boolean_value(*args, **kwargs)
-                
-        #   print 'Returning value: %s, stack: %s' % (value, [s.text for s in stack])
+
         return (value, stack)
 
     """ This function is meant to take extra arguments so subclasses can use additional
@@ -1326,18 +1379,15 @@ class BooleanExpression(models.Model):
     def add_token(self, token_or_value, seq=None, duplicate=True):
         my_stack = self.get_stack()
         if type(token_or_value) == str:
-            print 'Adding new token %s to %s' % (token_or_value, unicode(self))
             new_token = BooleanToken(text=token_or_value)
         elif duplicate:
             token_type = type(token_or_value)
-            print 'Adding duplicate of token %d, type %s, to %s' % (token_or_value.id, token_type.__name__, unicode(self))
             new_token = token_type()
             #   Copy over fields that don't describe relations
             for item in new_token._meta.fields:
                 if not item.__class__.__name__ in ['AutoField', 'OneToOneField']:
                     setattr(new_token, item.name, getattr(token_or_value, item.name))
         else:
-            print 'Adding new token %s to %s' % (token_or_value, unicode(self))
             new_token = token_or_value
         if seq is None:
             if my_stack.count() > 0:
@@ -1348,7 +1398,6 @@ class BooleanExpression(models.Model):
             new_token.seq = seq
         new_token.exp = self
         new_token.save()
-        print 'New token ID: %d' % new_token.id
         return new_token
     
     def evaluate(self, *args, **kwargs):
@@ -1451,7 +1500,6 @@ class ScheduleConstraint(models.Model):
         try:
             func_str = """def _f(schedule_map):
 %s""" % ('\n'.join('    %s' % l.rstrip() for l in self.on_failure.strip().split('\n')))
-            #   print func_str
             exec func_str
             result = _f(self.schedule_map)
             return result
