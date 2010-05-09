@@ -19,7 +19,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
 Contact Us:
 ESP Web Group
 MIT Educational Studies Program,
@@ -35,10 +34,12 @@ from esp.program.modules import module_ext
 from esp.web.util        import render_to_response
 from esp.middleware      import ESPError, AjaxError, ESPError_Log, ESPError_NoLog
 from esp.users.models    import ESPUser, UserBit, User
+from esp.tagdict.models  import Tag
 from django.db.models.query import Q
 from django.template.loader import get_template
 from django.http import HttpResponse
 from django.views.decorators.cache import cache_control
+from django.views.decorators.vary import vary_on_cookie
 from esp.cal.models import Event, EventType
 from datetime import datetime
 from decimal import Decimal
@@ -131,20 +132,64 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
         from django.db.models import Q
         verb_base = DataTree.get_by_uri('V/Flags/Registration')
 
+        now = datetime.now()
+
         Par = Q(userbit__qsc__parent__parent=self.program.classes_node())
         Reg = QTree(userbit__verb__below = verb_base)
-        Unexpired = Q(userbit__enddate__gte=datetime.now()) # Assumes that, for all still-valid reg userbits, we don't care about startdate, and enddate is null.
-        
+        Unexpired = Q(userbit__enddate__gte=now, userbit__startdate__lte=now) # Assumes that, for all still-valid reg userbits, we don't care about startdate, and enddate is null.
+
         if QObject:
-            return {'classreg': self.getQForUser(Par & Unexpired & Reg)}
+            retVal = {'classreg': self.getQForUser(Par & Unexpired & Reg)}
         else:
-            return {'classreg': User.objects.filter(Par & Unexpired & Reg).distinct()}
+            retVal = {'classreg': User.objects.filter(Par & Unexpired & Reg).distinct()}
+            
+        allowed_student_types = Tag.getTag("allowed_student_types", target = self.program)
+        if allowed_student_types:
+            allowed_student_types = allowed_student_types.split(",")
+            for stutype in allowed_student_types:
+                """ This code can't find registered students of the allowed types
+                    because the Q object needs to check for 2 different user 
+                    bits: the one that shows they're registered for classes and the 
+                    one that shows they have the right user role.
+                    As it is now, this selects all users of the allowed types;
+                    intersections with the 'classreg' students can be performed via
+                    the comm panel.
+                    Please change this if you have a preferred behavior and a way to
+                    implement it.           - Michael P, 4/14/2010
+                """
+                VerbParent = Q(userbit__verb__parent=GetNode("V/Flags/UserRole"))
+                VerbName = Q(userbit__verb__name=stutype)
+                          
+                if QObject:
+                    retVal[stutype] = self.getQForUser(Unexpired & VerbName & VerbParent)
+                    #   This would be nice, but unfortunately doesn't work:
+                    #   retVal[stutype] = self.getQForUser(Par & Unexpired & Reg & VerbName & VerbParent)
+                else:
+                    #   retVal[stutype] = User.objects.filter(Unexpired & VerbName & VerbParent).distinct()
+                    retVal[stutype] = retVal['classreg'].filter(userbit__enddate__gte=now, userbit__startdate__lte=now, userbit__verb__parent=GetNode("V/Flags/UserRole"), userbit__verb__name=stutype).distinct() 
+
+        return retVal
 
     def studentDesc(self):
-        return {'classreg': """Students who have have signed up for at least one class."""}
+        #   Label these heading nicely like the user registration form
+        from esp.users.forms.user_reg import role_choices
+        role_dict = {}
+        for item in role_choices:
+            role_dict[item[0]] = item[1]
+
+        result = {'classreg': """Students who have have signed up for at least one class."""}
+        allowed_student_types = Tag.getTag("allowed_student_types", target = self.program)
+        if allowed_student_types:
+            allowed_student_types = allowed_student_types.split(",")
+            for stutype in allowed_student_types:
+                if stutype in role_dict:
+                    result[stutype] = role_dict[stutype]
+
+        return result
+
     
     def isCompleted(self):
-        return (len(self.user.getSections(self.program)[:1]) > 0)
+        return (Tag.getTag("allow_confirm_without_classreg", target=self.program)) or (len(self.user.getSectionsFromProgram(self.program)[:1]) > 0)
 
     def deadline_met(self, extension=None):
         #   Allow default extension to be overridden if necessary
@@ -156,7 +201,7 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
     @needs_student
     def prepare(self, context={}):
         regProf = RegistrationProfile.getLastForProgram(self.user, self.program)
-        timeslots = list(self.program.getTimeSlots(exclude_types=[]).order_by('start'))
+        timeslots = self.program.getTimeSlotList(exclude_compulsory=False)
         classList = ClassSection.prefetch_catalog_data(regProf.preregistered_classes())
         
         prevTimeSlot = None
@@ -190,25 +235,20 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
                 else:
                     timeslot_dict[mt.id] = [section_dict]
                     
-        for timeslot in timeslots:
+        user_priority = user.getRegistrationPriorities(self.program, [t.id for t in timeslots])
+        for i in range(len(timeslots)):
+            timeslot = timeslots[i]
             daybreak = False
             if prevTimeSlot != None:
                 if not Event.contiguous(prevTimeSlot, timeslot):
                     blockCount += 1
                     daybreak = True
 
-            #   Same change as above.  -Michael P
-            #   if scrmi.use_priority:
-            #       user_priority = user.getRegistrationPriority([timeslot])
-            #   else:
-            #       user_priority = None
-            user_priority = user.getRegistrationPriority([timeslot])
-
             if timeslot.id in timeslot_dict:
                 cls_list = timeslot_dict[timeslot.id]
-                schedule.append((timeslot, cls_list, blockCount + 1, user_priority))
+                schedule.append((timeslot, cls_list, blockCount + 1, user_priority[i]))
             else:                
-                schedule.append((timeslot, [], blockCount + 1, user_priority))
+                schedule.append((timeslot, [], blockCount + 1, user_priority[i]))
 
             prevTimeSlot = timeslot
                 
@@ -217,6 +257,7 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
         context['allow_removal'] = self.deadline_met('/Removal')
 
         return context
+
 
     @aux_call
     @needs_student
@@ -274,10 +315,9 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
         else:
             raise ESPError(False), "We've lost track of your chosen class's ID!  Please try again; make sure that you've clicked the \"Add Class\" button, rather than just typing in a URL.  Also, please make sure that your Web browser has JavaScript enabled."
 
-        enrolled_classes = ESPUser(request.user).getEnrolledClasses(prog, request)
-
         # Can we register for more than one class yet?
         if (not self.user.onsite_local) and (not UserBit.objects.UserHasPerms(request.user, prog.anchor, reg_verb ) ):
+            enrolled_classes = ESPUser(request.user).getEnrolledClasses(prog, request)
             # Some classes automatically register people for enforced prerequisites (i.e. HSSP ==> Spark). Don't penalize people for these...
             classes_registered = 0
             for cls in enrolled_classes:
@@ -301,21 +341,24 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
                 #   This line of code has been used for Cascade and may be useful in the future        
                 #   raise ESPError(False), "Currently, you are only allowed to register for one %s class.  Please come back after student registration fully opens%s!" % (prog.niceName(), datestring)
 
-        cobj = ClassSubject.objects.get(id=classid)
         section = ClassSection.objects.get(id=sectionid)
         if not scrmi.use_priority:
             error = section.cannotAdd(self.user,self.enforce_max,use_cache=False)
         if scrmi.use_priority or not error:
+            cobj = ClassSubject.objects.get(id=classid)
             error = cobj.cannotAdd(self.user,self.enforce_max,use_cache=False)
-        
-        priority = self.user.getRegistrationPriority(section.meeting_times.all())
+
+        if scrmi.use_priority:
+            priority = self.user.getRegistrationPriority(prog, section.meeting_times.all())
+        else:
+            priority = 1
 
         # autoregister for implied classes one level deep. XOR is currently not implemented, but we're not using it yet either.
         auto_classes = []
         blocked_class = None
         cannotadd_error = ''
 
-        for implication in ClassImplication.objects.filter(cls=cobj, parent__isnull=True):
+        for implication in ClassImplication.objects.filter(cls__id=classid, parent__isnull=True):
             if implication.fails_implication(self.user):
                 for cls in ClassSubject.objects.filter(id__in=implication.member_id_ints):
                     #   Override size limits on subprogram classes (checkFull=False). -Michael P
@@ -365,6 +408,8 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
     @meets_deadline('/Classes/OneClass')
     def ajax_addclass(self,request, tl, one, two, module, extra, prog):
         """ Preregister a student for the specified class and return an updated inline schedule """
+        if not request.is_ajax():
+            return self.addclass(request, tl, one, two, module, extra, prog)
         try:
             success = self.addclass_logic(request, tl, one, two, module, extra, prog)
             if success:
@@ -376,6 +421,7 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
                     pass
                 return self.ajax_schedule(request, tl, one, two, module, extra, prog)
         except ESPError_NoLog, inst:
+            print inst
             if inst[0]:
                 msg = inst[0]
                 raise AjaxError(msg)
@@ -415,8 +461,9 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
             classes = filter(lambda c: not c.isRegClosed(), classes)
 
         #   Sort class list
-        classes = sorted(classes, key=lambda cls: cls.num_students() - cls.capacity)
+
         classes = sorted(classes, key=lambda cls: cls.category.category)
+        classes = sorted(classes, key=lambda cls: cls.num_students())
 
         categories = {}
 
@@ -511,7 +558,7 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
                 'two':        two,
                 })
     
-    @cache_control(max_age=3600)
+    @cache_control(public=True, max_age=3600)
     def catalog_json(self, request, tl, one, two, module, extra, prog, timeslot=None):
         """ Return the program class catalog """
         # using .extra() to select all the category text simultaneously
@@ -532,6 +579,8 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
 
     # This function gets called and branches off to the two above depending on the user's role
     @aux_call
+    @cache_control(public=True, max_age=180)
+    @vary_on_cookie
     def catalog(self, request, tl, one, two, module, extra, prog, timeslot=None):
         """ Check user role and maybe return the program class catalog """
         
@@ -593,7 +642,9 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
                 for auto_class in ClassSubject.objects.filter(id__in=implication.member_id_ints):
                     auto_class.unpreregister_student(self.user)
                         
-        return True
+        #   Return the ID of classes that were removed.
+        return oldclasses.values_list('id', flat=True)
+
 
     @aux_call
     @needs_student
@@ -608,9 +659,13 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
     @meets_any_deadline(['/Classes/OneClass','/Removal'])
     def ajax_clearslot(self,request, tl, one, two, module, extra, prog):
         """ Clear the specified timeslot from a student registration and return an updated inline schedule """
-        success = self.clearslot_logic(request, tl, one, two, module, extra, prog)
-        if success:
-            return self.ajax_schedule(request, tl, one, two, module, extra, prog)
+        if not request.is_ajax():
+            return self.clearslot(request, tl, one, two, module, extra, prog)
+        
+        cleared_ids = self.clearslot_logic(request, tl, one, two, module, extra, prog)
+        if len(cleared_ids) > 0:
+            #   The 'extra' value should be the ID list
+            return self.ajax_schedule(request, tl, one, two, module, cleared_ids, prog)
 
     @aux_call
     @needs_student

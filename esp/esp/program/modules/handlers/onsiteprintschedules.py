@@ -40,6 +40,7 @@ from esp.users.models import UserBit
 from datetime         import datetime
 from django.db.models.query   import Q
 from esp.accounting_docs.models import Document, MultipleDocumentError
+from django.template.loader import select_template
 
 class OnsitePrintSchedules(ProgramModuleObj):
     @classmethod
@@ -75,14 +76,17 @@ class OnsitePrintSchedules(ProgramModuleObj):
         Q_qsc  = Q(qsc  = qsc.id)
         Q_verb = Q(verb__in = [ verb.id ] + list( verb.children() ) )
         
-        ubits = UserBit.valid_objects().filter(Q_qsc & Q_verb).order_by('startdate')[:1]
-        
-        for ubit in ubits:
-            ubit.enddate = datetime.now()
-            ubit.save()
-
         # get students
-        old_students = set([ ESPUser(ubit.user) for ubit in ubits ])
+        if ("force_current_user" in request.GET) and (request.GET['force_current_user'] == "true"):
+            old_students = set([ESPUser(request.user)])
+        else:
+            ubits = UserBit.valid_objects().filter(Q_qsc & Q_verb).order_by('startdate')[:1]
+        
+            for ubit in ubits:
+                ubit.enddate = datetime.now()
+                ubit.save()
+
+            old_students = set([ ESPUser(ubit.user) for ubit in ubits ])
 
         students = []
 
@@ -129,7 +133,9 @@ class OnsitePrintSchedules(ProgramModuleObj):
             else:
                 img_format = 'png'
 
-            response = render_to_latex(self.baseDir()+'../programprintables/studentschedule.tex', {'students': students, 'module': self, 'PROJECT_ROOT': settings.PROJECT_ROOT}, img_format)
+            schedule_template = select_template([self.baseDir()+'../programprintables/program_custom_schedules/%s_studentschedule.tex' %(self.program.id), self.baseDir()+'../programprintables/studentschedule.tex'])
+
+            response = render_to_latex(schedule_template, {'students': students, 'module': self, 'PROJECT_ROOT': settings.PROJECT_ROOT}, img_format)
             # set the refresh rate
             #response['Refresh'] = '2'
 

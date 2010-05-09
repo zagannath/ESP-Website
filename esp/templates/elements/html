@@ -3,6 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title>{% block title %}{% endblock %}</title>
+<link rel="icon" type="image/png" href="/media/favicon.png">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="description" content="{% block description %}{% endblock %}" />
 <meta name="keywords" content="{% block keywords %}{% endblock %}" lang="en-us" xml:lang="en-us" />
@@ -16,7 +17,7 @@
 {% block xtrajs %}{% endblock %}
 
 </head>
-<body onload="MM_preloadImages( {% for img in preload_images %}'{{ img }}'{% if not forloop.last %}, {% endif %}{% endfor %})">
+<body class="tundra" onload="MM_preloadImages( {% for img in preload_images %}'{{ img }}'{% if not forloop.last %}, {% endif %}{% endfor %})">
 
 {% block body %}{% endblock %}
 
