@@ -41,7 +41,7 @@ EOF
 psql -U esp -f /tmp/mit_working_main_migration.sql django
 
 echo "Adding MIT-specific settings to DB"
-cat > /tmp/mit_working_main_configurer.py <<EOF
+cat > /tmp/mit_working_main_configurer.py <<EOFF
 import sys
 sys.path.append("`pwd`")
 from django.core.management import setup_environ
@@ -736,7 +736,7 @@ TemplateOverride.objects.get_or_create(name="index.html", content=index_text, ve
 TemplateOverride.objects.get_or_create(name="main.html", content=main_text, version=1)
 TemplateOverride.objects.get_or_create(name="main_static.html", content=main_static_text, version=1)
 
-EOF
+EOFF
 
 chmod +x /tmp/mit_working_main_configurer.py
 python /tmp/mit_working_main_configurer.py
@@ -745,13 +745,13 @@ echo "Kicking Apache"
 touch ../public/esp.wsgi
 
 echo "Kicking memcached"
-echo "(this may require your sudoer password, to run the memcached init script)
+echo "(this may require your sudoer password, to run the memcached init script)"
 sudo /etc/init.d/memcached restart || echo "Couldn't find the memcached init script; you should kick it yourself"
 
 echo "All done!  Temporary files/directories that you can hopefully get rid of now:"
-cat <<EOF
+cat <<EOFFF
 ~/esp.pre-migration-backup
 ../public/media.orig
 /tmp/mit_working_main_migration.sql
 /tmp/mit_working_main_configurer.py
-EOF
+EOFFF
