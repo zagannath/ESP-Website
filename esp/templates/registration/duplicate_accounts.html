@@ -16,34 +16,18 @@
 <h1>Create a new account</h1>
 
 <p>
-  Welcome to ESP! To do almost anything with ESP, you first need to register
-an account with us. After you register account, you will be allowed to register
-for programs, sign up for classes, among other things.
-</p>
-
-<p>
-  If you just want to receive e-mail announcements about our programs, you can <a href="/cgi-bin/mailman/listinfo">click here</a> to choose and sign up for any of our mailing lists.  If you create an account, you will be automatically subscribed to our main Announcements list.
-</p>
-
-{% if accounts %}
-<div class="note">
-<p>
 Warning:  It looks like other accounts already exist for this
-e-mail address.  Do you already have an {{ site }} account?  If so,
-try logging in with one of the following username(s).  (If not, just
-click "Create account" again below.)
+e-mail address.  Do you already have an esp.mit.edu account?  If so,
+could you try logging in with one of the following username(s):
 </p>
 
 <ul>
   {% for u in accounts %}
-  <li>Username: "{{ u.username }}" (
-  <form method="post" action="/myesp/login">
-    <input type="hidden" name="username" value="{{ u.username }}" />
-    <input type="hidden" name="password" value="" />
-    <input type="hidden" name="next" value="/myesp/profile/" />
+  <li>{{ u.username }} (
+  <form method="link" action="/myesp/login">
     <input type="submit" value="Try logging in" />
   </form>
-  <form action="/myesp/passwdrecover/" method="post">
+  <form action="/myesp/passwdrecover" method="post">
     <input type="hidden" name="email" value="{{ u.email }}" />
     <input type="hidden" name="username" value="{{ u.username }}" />
     <input type="submit" value="I forgot my password!" />
@@ -51,9 +35,7 @@ click "Create account" again below.)
   )
   </li>
   {% endfor %}
-</ul>
-</div>
-{% endif %}
+</ul>  
 
 <div id="program_form">
 <form action="{{ request.path }}" method="post" name="newuser_form">
@@ -79,7 +61,6 @@ are errors{% endif %} in the below form. Please fix and resubmit.
 {% endif %}
 
 {{ form }}
-{% if accounts %}<input type="hidden" name="do_reg_no_really" value="true" />{% endif %}
 <tr>
   <th colspan="2" class="submit">
     <input type="submit" value="Create account, proceed to profile creation" name="submit" />

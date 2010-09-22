@@ -138,6 +138,7 @@ MIDDLEWARE_GLOBAL = [
     ( 900, 'django.contrib.sessions.middleware.SessionMiddleware'),
     (1000, 'esp.middleware.ESPAuthMiddleware'),
     (1100, 'django.middleware.doc.XViewMiddleware'),
+    (1150, 'sslauth.middleware.SSLAuthMiddleware'),
     (1200, 'django.middleware.gzip.GZipMiddleware'),
     (1300, 'esp.middleware.PrettyErrorEmailMiddleware'),
    #(1400, 'esp.middleware.StripWhitespaceMiddleware'),
@@ -183,6 +184,7 @@ INSTALLED_APPS = (
     'esp.cache_loader',
     'django_extensions',
     'south',
+    'sslauth',
 )
 import os
 for app in ('django_evolution', 'django_command_extensions'):
@@ -223,3 +225,20 @@ if False:
         filename = '/tmp/mit-esp.log',
         filemode = 'w'
     )
+
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'sslauth.backends.SSLAuthBackend',
+    )
+
+SSLAUTH_USE_COOKIE = True
+SSLAUTH_CREATE_USER = True
+
+try:
+    from esp.utils.sslauth_create_user import find_ssl_user    
+except ImportError:
+    ## Django hasn't done its sys.path-hacking yet at this point
+    from utils.sslauth_create_user import find_ssl_user
+SSLAUTH_CREATE_USERNAME_CALLBACK = find_ssl_user
+
