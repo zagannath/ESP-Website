@@ -60,6 +60,17 @@ import pickle
 import operator
 import simplejson as json
 
+def lottery_student_reg(self):
+    """
+    Serve the student reg page.
+
+    This is just a static page;
+    it gets all of its content from AJAX callbacks.
+    """
+    context = {}
+    
+    return render_to_response('program/modules/lottery_student_reg/student_reg.html', {})#, request, (prog, tl), context)
+
 def find_user(userstr):
     """
     Do a best-guess effort at finding a user based on a string identifying that user.
