@@ -12,4 +12,5 @@ urlpatterns = patterns('',
                        (r'^manage/statistics/?$', 'esp.program.views.statistics'),
                        (r'^manage/preview/?$', 'esp.program.views.template_preview'),
                        (r'^manage/mergeaccounts/?$', 'esp.users.views.merge.merge_accounts'),
+                       (r'^lottery_student_reg', 'esp.program.views.lottery_student_reg')
                        )
