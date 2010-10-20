@@ -70,64 +70,84 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
     },
     
     makeTabs: function (store, records, options) {
-	    tabs = [];
-	records.forEach(function(record) {
-		r = record.data
-		    for (i=0; i< r.get_sections[0].get_meeting_times.length; i++) {
-			timeblock = r.get_sections[0].get_meeting_times[i];
-			if (!tabs[timeblock.id]){
-			    tabs[timeblock.id] = {
-				id: timeblock.id,
-				xtype: 'form',
-				autoScroll: true,
-				title: timeblock.short_description,
-				items: 
-				[{
-					xtype: 'field',
-					readonly: true,
-					fieldLabel: 'First Choice Class',
-					id: 'fcc_'+timeblock.id
-				}]
-			    };
-			}
-		       
-			//one class has a label, a checkbox for 'willing to take' and a radio button for 'flag'
-			tabs[timeblock.id].items.push({
-				xtype: 'fieldset',
-				    layout:  'column',
-				    items: [
-					    {
-						xtype: 'radio',
-						name: 'flag', 
-						listeners: { //when the radio button is selected change the flag and display title at top
-						    check: function(radio, checked) {
-							if (checked) {
-							    //Ext.getCmp('fcc_'+timeblock.id).setValue(r.title);
-							}
-						    }
-						}
-					    },
-					    {
-						xtype: 'checkbox',
-						    name: 'cb_'+r.title
-					    },
-					    {
-						xtype: 'label',
-						    text:  r.title
-					    }
-                                    ], 
+	    //make a tab for each class period
+	    //num_tabs and tab_names need to be modified for a particular program
+	tabs = [];
+	tab_names =  [
+		     'First class period: Sat 9:05 - 9:55 AM', 
+		     'Second class period: 10:05 - 10:55 AM', 
+		     'Third class period: 11:05 - 11:55 AM', 
+		     'Fourth class period: 12:05 - 12:55 PM\r\n\r\nLunch A will run during this hour.', 
+		     'Fifth class period: 1:05 - 1:55 PM\r\n\r\nLunch B will run during this hour.', 
+		     'Sixth class period: 2:05 - 2:55', 
+		     'Seventh class period: 3:05 - 3:55 PM', 
+		     'Eighth class period: 4:05 - 4:55 PM', 
+		     'Ninth class period: 5:05 - 5:55 PM', 
+		     'Tenth class period: 7:05 - 7:55 PM', 
+		     'Eleventh class period: 8:05 - 8:55 PM', 
+		     'Twelfth class period: 9:05 - 9:55 PM'
+		     ];
+	num_tabs = tab_names.length;
+
+	//makes tabs with id = short_description of timeblock
+	    for(i = 0; i < num_tabs; i++)
+	    {
+		{
+		    tabs[tab_names[i]] = 
+		    {
+			xtype: 'form',
+			title: tab_names[i],
+			items: 
+			[
+		            {
+				xtype: 'field',
+				fieldLabel: 'First Choice Class'
+			    } 
+                        ]
+		    }
+		}
+	    }
+
+	    for (i = 0; i < records.length; i++)
+	    { 
+		r = records[i].data;
+		num_sections = r.get_sections.length;
+		for (j = 0; j < num_sections; j ++)
+		{
+		    if(r.get_sections[j].get_meeting_times.length >0)
+		    {
+			timeblock = r.get_sections[j].get_meeting_times[0]
+			tabs[timeblock.short_description].items.push({
+				    xtype: 'fieldset',
+				    layout: 'column',
+				    items: 
+				    [
+			               {
+					   xtype: 'radio',
+					   name: 'flag',
+				       }, 
+			               {
+					   xtype: 'checkbox',
+					   name: 'checkbox_'+r.id
+				       }, 
+			               { 
+					   xtype: 'label',
+					   value: r.title
+				       }
+				    ]
+			
 			});
 		    }
+		}
 	    }
-        );
-	    //adds the class tabs
-	    j = 0;
-	    for (i=0; i < tabs.length; i++){ 
-		if(tabs[i]){
-		    Ext.getCmp('sri').add(tabs[i]);
-		    }
-	    }
+	
+	    //adds tabs to tabpanel
 	    
+	    for (i = 0; i < num_tabs; i ++)
+	    {
+		Ext.getCmp('sri').add(tabs[tab_names[i]]);
+	    }
+
 	    //creates "confirm registration" tab
 	    //creates fields for all first choice classes
 	    flagged_classes = [];
@@ -139,11 +159,11 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		    value: 'make sure the first choice classes below are correct, then click "confirm registration"'
 	    });
 
-	    for (i=0; i < tabs.length; i++){
-		if(tabs[i]){
+	    for (i=0; i < num_tabs; i++){
+		if(tabs[tab_names[i]]){
 		    flagged_classes.push({
 			    xtype: 'field',
-			    fieldLabel: tabs[i].title,
+			    fieldLabel: tab_names[i],
 		    });
 		}
 	    }
@@ -161,7 +181,6 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		    title: 'Confirm Registration',
 		    items: flagged_classes,
 	    });
-
     },
 
     confirmRegistration: function() {
