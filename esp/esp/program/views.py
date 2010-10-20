@@ -60,7 +60,7 @@ import pickle
 import operator
 import simplejson as json
 
-def lottery_student_reg(self):
+def lottery_student_reg(request):
     """
     Serve the student reg page.
 
@@ -69,7 +69,7 @@ def lottery_student_reg(self):
     """
     context = {}
     
-    return render_to_response('program/modules/lottery_student_reg/student_reg.html', {})#, request, (prog, tl), context)
+    return render_to_response('program/modules/lottery_student_reg/student_reg.html', request, None, {})
 
 def find_user(userstr):
     """
