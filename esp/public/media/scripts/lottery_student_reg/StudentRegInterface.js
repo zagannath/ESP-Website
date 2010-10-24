@@ -1,3 +1,5 @@
+checkbox_ids = [];
+flag_ids = [];
 
 StudentRegInterface = Ext.extend(Ext.TabPanel, {
 
@@ -27,7 +29,8 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	    width: 1200,
 	    autoHeight: true,
 	    autoScroll: true,
-	    deferredRender: false,
+	    deferredRender: true,
+	    forceLayout: true,
 	    closeable: false,
 	    tabWidth: 20,
 	    enableTabScroll: true,
@@ -40,7 +43,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		    items: [
 	                {
 			    xtype: 'displayfield',
-			    value: 'Welcome To Splash Lottery Registration!'
+			    value: '<p>Welcome To Splash Lottery Registration!<\p>'
 			},
 	                {
 			    xtype: 'textarea',
@@ -53,18 +56,22 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
             ]
 	};
  
-	store = this.loadCatalog();
-	store.load({});	
+	this.loadCatalog();
+	this.store.load({});	
 
 	Ext.apply(this, Ext.apply(this.initialConfig, config));
 	StudentRegInterface.superclass.initComponent.apply(this, arguments); 
     },
 
     loadCatalog: function () {
-        return new Ext.data.JsonStore({
+	    this.store =  new Ext.data.JsonStore({
+		id: 'store',
 	        root: '',
 		success: true,
 	        fields: [
+	        {
+		    name: 'id'
+		},  
 		{
                     name: 'title'
                 },
@@ -87,7 +94,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		    }
 		},		
 	    });
-    },
+	    },
     
     makeTabs: function (store, records, options) {
 	    //make a tab for each class period
@@ -97,64 +104,67 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	//makes tabs with id = short_description of timeblock
 	    for(i = 0; i < num_tabs; i++)
 	    {
-		{
-		    tabs[this.tab_names[i]] = 
+		tabs[this.tab_names[i]] = 
 		    {
 			xtype: 'form',
 			id: this.tab_names[i],
 			title: this.tab_names[i],
 			items: 
 			[
-		            {
-				xtype: 'field',
-				id: 'flag' + this.tab_names[i],
+			    /*{
+		                xtype: 'field',
+				id: flag_id+ '_field',
 				fieldLabel: 'Flagged Class'
-			    } 
+			    }*/
                         ]
 		    }
-		}
 	    }
-
+	    //itterate through records (classes)
 	    for (i = 0; i < records.length; i++)
 	    { 
-		r = records[i].data;
-		num_sections = r.get_sections.length;
+		r = records[i];
+		num_sections = r.data.get_sections.length;
+		//itterate through times a class is offered
 		for (j = 0; j < num_sections; j ++)
 		{
-		    if(r.get_sections[j].get_meeting_times.length >0)
+		    if(r.data.get_sections[j].get_meeting_times.length >0)
 		    {
-			timeblock = r.get_sections[j].get_meeting_times[0]
+			timeblock = r.data.get_sections[j].get_meeting_times[0];
+		
+			//puts id of checkbox in the master list
+			checkbox_id = r.data.id + '_' + timeblock.id;
+			checkbox_ids.push(checkbox_id);
+		
+			flag_id = 'flag_'+timeblock.id;
+			if(flag_ids.indexOf(flag_id)==-1){
+			    flag_ids.push(flag_id);
+			}
+
 			tabs[timeblock.short_description].items.push({
 				    xtype: 'fieldset',
 				    layout: 'column',
-				    name: timeblock.short_description+r.title,
+				    id: timeblock.short_description+r.data.title,
+				    name: timeblock.short_description+r.data.title,
 				    items: 
 				    [
 			               {
 					   xtype: 'radio',
-					   name: 'flag'+timeblock.short_description,
+					   id: 'flag_'+checkbox_id,
+					   name: flag_id,
+					   inputValue: r.data.id,
 					   listeners: { //listener changes the flagged classes box at the top when the flagged class changes
-					       check: function (radio, checked) {
-						   if(checked)
-						   {
-						       //Ext.getCmp('flag'+timeblock.short_description).setValue(r.title);
-						       //Ext.getCmp('confirm_flag'+timeblock.short_description).setValue(r.title);
-						       
-						       //for (i in Ext.getCmp('flag'+timeblock.short_description)) { alert(i); }
-
-						       //Ext.getCmp('flag'+timeblock.short_description).getEl().repaint();
-						       //Ext.getCmp('confirm_flag'+timeblock.short_description).getEl().repaint(); 
-						   }
-					       }
+					       
 					   }
 				       }, 
 			               {
 					   xtype: 'checkbox',
-					   name: 'checkbox_'+r.id
+					   name: checkbox_id,
+					   id: checkbox_id
 				       }, 
 			               { 
 					   xtype: 'displayfield',
-					   value: r.title
+					   value: r.data.title,
+					   id: 'title_'+ checkbox_id 
 				       }
 				    ]
 			
@@ -170,63 +180,101 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	    }
 
 	    //creates "confirm registration" tab
-	    //creates fields for all first choice classes
-	    flagged_classes = [];
+	     //creates fields for all first choice classes
+	     flagged_classes = [];
 
-	    //adds textarea with some explanation
-	    flagged_classes.push({
-		    xtype: 'displayfield',
-		    width: '700',
-		    value: 'Please make sure the flagged classes below are correct, then click "confirm registration"'
-	    });
+	     //adds textarea with some explanation
+	     flagged_classes.push({
+		     xtype: 'displayfield',
+		     width: '700',
+		     value: 'Please make sure the flagged classes below are correct, then click "confirm registration"'
+	     });
 
-	    flagged_classes.push({
-		    xtype: 'displayfield',
-		    width: '700',
-		    value: 'Flagged Classes'
-	    });
+	/*
+	     for (i=0; i < num_tabs; i++){
+		 if(tabs[this.tab_names[i]]){
+		     flagged_classes.push({
+			     xtype: 'field',
+			     id: 'confirm_flag'+this.tab_names[i], 
+			     fieldLabel: this.tab_names[i],
+		     });
+		 }
+		 }*/
 
-	    for (i=0; i < num_tabs; i++){
-		if(tabs[this.tab_names[i]]){
-		    flagged_classes.push({
-			    xtype: 'field',
-			    id: 'confirm_flag'+this.tab_names[i], 
-			    fieldLabel: this.tab_names[i],
-		    });
+	     //adds "confirm registration" button
+	     flagged_classes.push({
+		     xtype: 'button',
+		     text: 'Confirm Registration!',
+		     handler: this.promptCheck,
+	     });
+
+	     //adds above to a form
+	     Ext.getCmp('sri').add({
+		     xtype: 'form',
+		     title: 'Confirm Registration',
+		     items: flagged_classes,
+		     });
+     },
+
+    promptCheck: function() {
+	    flagged_classes = 'Please check to see that these are the classes you intended to flag:<ul>';
+	    for(i = 0; i<checkbox_ids.length; i++){
+		if (Ext.getCmp('flag_'+checkbox_ids[i]).getValue() == true){
+		    title = Ext.getCmp('title_'+checkbox_ids[i]).getValue();
+		    flagged_classes = flagged_classes + title + '<ul>';
 		}
 	    }
-
-	    //adds "confirm registration" button
-	    flagged_classes.push({
-		    xtype: 'button',
-		    text: 'Confirm Registration!',
-		    handler: this.confirmRegistration
-	    });
-
-	    //adds above to a form
-	    Ext.getCmp('sri').add({
-		    xtype: 'form',
-		    title: 'Confirm Registration',
-		    items: flagged_classes,
-	    });
+	    Ext.Msg.show({
+		    title:  'Flagged Classes',
+		    msg: flagged_classes,
+		    buttons: {ok:'These look good.  Enter me into the Splash lottery!', cancel:'Wait!  No!  Let me go back and edit them!'},
+		    fn: function(button) {
+			if (button == 'ok'){Ext.getCmp('sri').confirmRegistration();}
+			if (button == 'cancel'){Ext.Msg.hide();}
+		    }
+		});
     },
 
-    confirmRegistration: function() {
-	    alert('You have just entered the Splash class lottery!');
-	    tabpanel = Ext.getCmp('sri');
-	    for(i = 0; i < tabpanel.tab_names.length; i++){
-		Ext.getCmp(tabpanel.tab_names[i]).getForm().submit({ url: 'lsr_submit' });
-	    }
+     confirmRegistration: function() {
+	     tabpanel = Ext.getCmp('sri');
+	    //submitForm.getForm().submit({url: 'lsr_submit'})
+	     classes = new Object;
+	     count = 0;
+
+	     for(i=0; i<checkbox_ids.length; i++) {
+		 checkbox = Ext.getCmp(checkbox_ids[i]);
+		 classes[checkbox_ids[i]] = checkbox.getValue();
+		 flag_id = 'flag_'+checkbox_ids[i];
+		 flag = Ext.getCmp(flag_id);
+		 classes[flag_id] = flag.getValue();
+	     }
+
+	     /*
+	     for(i=0; i<flag_ids.length; i++){
+	         flag = Ext.getCmp(flag_ids[i]);
+		 classes[flag_ids[i]] = flag.getValue();
+		 }*/
+
+	     data = Ext.encode(classes);
+	     Ext.Ajax.request({
+		     url: 'lsr_submit',
+		     params: data,
+		     method: 'POST'
+		 });
     }
 });
 
 Ext.reg('lottery_student_reg', StudentRegInterface);
 
+
 var win = new Ext.Window({
 	closable: false,
-	items: [{ xtype: 'lottery_student_reg', id: 'sri'}],
+	items: [{ xtype: 'lottery_student_reg', id: 'sri'},
+		//submitForm
+        ],
 });
 
 Ext.onReady(function() {
     win.show();
+    //submitForm.getForm().submit({url: 'lsr_submit'});
 });
