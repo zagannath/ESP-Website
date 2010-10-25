@@ -71,6 +71,10 @@ def lottery_student_reg(request):
     
     return render_to_response('program/modules/lottery_student_reg/student_reg.html', request, None, {})
 
+def lsr_submit(something):
+    print 'ahhhhhhhhh'
+    return render_to_response('index.html', something, None, {})
+
 def find_user(userstr):
     """
     Do a best-guess effort at finding a user based on a string identifying that user.
