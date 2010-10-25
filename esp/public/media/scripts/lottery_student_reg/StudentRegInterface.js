@@ -19,10 +19,13 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		     'Eleventh class period: 8:05 - 8:55 PM', 
 		     'Twelfth class period: 9:05 - 9:55 PM'
 		     ],
+    //num_tabs: 12,
+    //num_opened_tabs: 0,
          
 
     initComponent: function () {
 	num_tabs = this.tab_names.length;
+	num_opened_tabs = 0;
 
 	var config = {
 	    id: 'sri',
@@ -102,7 +105,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	tabs = [];
 
 	//makes tabs with id = short_description of timeblock
-	    for(i = 0; i < num_tabs; i++)
+	for(i = 0; i < num_tabs; i++)
 	    {
 		tabs[this.tab_names[i]] = 
 		    {
@@ -116,7 +119,10 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 				id: flag_id+ '_field',
 				fieldLabel: 'Flagged Class'
 			    }*/
-                        ]
+			 ],
+			listeners: {
+			    render: function() { num_opened_tabs++; }
+			}
 		    }
 	    }
 	    //itterate through records (classes)
@@ -205,7 +211,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	     flagged_classes.push({
 		     xtype: 'button',
 		     text: 'Confirm Registration!',
-		     handler: this.promptCheck,
+		     handler: this.allTabsCheck,
 	     });
 
 	     //adds above to a form
@@ -215,6 +221,22 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		     items: flagged_classes,
 		     });
      },
+
+    allTabsCheck: function() {
+	    if (num_opened_tabs = num_tabs){Ext.getCmp('sri').promptCheck();}
+		    Ext.Msg.show({
+			    title: 'Wait!',
+			    msg: "You haven't filled out preferences for every time slot.",
+			    buttons: {ok:"That's fine.  I won't be attending splash then.", cancel:"No, let me go back and fill out the parts I missed!"},
+			    fn: function(button){
+				if(button == 'ok') {
+				    for(j = 0; j < num_tabs; j++) { Ext.getCmp('sri').setActiveTab(i);} 
+				    Ext.getCmp('sri').promptCheck();
+				}
+				if(button == 'cancel') { Ext.Msg.hide(); }
+			    }
+		    });
+	},
 
     promptCheck: function() {
 	    flagged_classes = 'Please check to see that these are the classes you intended to flag:<ul>';
