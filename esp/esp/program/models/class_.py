@@ -415,7 +415,7 @@ class ClassSection(models.Model):
                 ans = min(self.parent_class.class_size_max, self._get_room_capacity(rooms))
 
         #hacky fix for classes with no max size
-        if ans == None:
+        if ans is None:
             ans = 0
             
         #   Apply dynamic capacity rule
