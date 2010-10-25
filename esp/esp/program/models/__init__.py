@@ -411,18 +411,16 @@ class Program(models.Model):
         for sec in self.sections().values('id', 'anchor'):
             qsc_map[sec['anchor']] = sec['id']
     
-        reg_verb = GetNode('V/Flags/Registration/Enrolled')
-        bits = UserBit.valid_objects().filter().filter(QTree(qsc__below=self.anchor['Classes'])).filter(user__id__in=checked_in_ids, verb=reg_verb).values('user', 'qsc')
-        for bit in bits:
-            if bit['qsc'] in qsc_map:
-                secid = qsc_map[bit['qsc']]
-                if secid not in counts:
-                    counts[secid] = 0
-                counts[secid] += 1
+        reg_type = RegistrationType.get_map()['Enrolled']
+
+        regs = StudentRegistration.valid_objects().filter(section__parent_class__parent_program=self).filter(user__id__in=checked_in_ids, relationship=reg_type).values('user', 'section')
+        for reg in regs:
+            if reg['section'] not in counts:
+                counts[reg['section']] = 0
+            counts[reg['section']] += 1
                 
         return counts
-                
-
+        
     def student_counts_by_section_id(self):
         from esp.program.models.class_ import sections_in_program_by_id
         section_ids = sections_in_program_by_id(self)
@@ -555,11 +553,11 @@ class Program(models.Model):
 
         students_dict = self.students(QObjects = True)
         if students_dict.has_key('classreg'):
-            students_count = User.objects.filter(students_dict['classreg']).distinct().count()
+            students_count = ESPUser.objects.filter(students_dict['classreg']).distinct().count()
         elif students_dict.has_key('satprepinfo'):
-            students_count = User.objects.filter(students_dict['satprepinfo']).distinct().count()
+            students_count = ESPUser.objects.filter(students_dict['satprepinfo']).distinct().count()
         else:
-            students_count = User.objects.filter(userbit__qsc=self.anchor['Confirmation']).distinct().count()
+            students_count = ESPUser.objects.filter(userbit__qsc=self.anchor['Confirmation']).distinct().count()
 #            students_count = 0
 #            for c in self.classes():
 #                students_count += c.num_students(use_cache=True)
@@ -1577,7 +1575,7 @@ class ScheduleMap:
         self.program = program
         self.user = user
         self.populate()
-    __init__.depend_on_row(lambda: UserBit, lambda bit: {'user': bit.user}, lambda bit: bit.verb.get_uri().startswith('V/Flags/Registration'))
+    __init__.depend_on_row(lambda: StudentRegistration, lambda reg: {'user': reg.user})
 
     @cache_function
     def populate(self):
@@ -1590,7 +1588,7 @@ class ScheduleMap:
                 result[m.id].append(s)
         self.map = result
         return self.map
-    populate.depend_on_row(lambda: UserBit, lambda bit: {}, lambda bit: bit.verb.get_uri().startswith('V/Flags/Registration'))
+    populate.depend_on_row(lambda: StudentRegistration, lambda reg: {})
 
     def add_section(self, sec):
         for t in sec.meeting_times.all().values_list('id'):
@@ -1756,6 +1754,70 @@ class VolunteerOffer(models.Model):
     name = models.CharField(max_length=80, blank=True, null=True)
     phone = PhoneNumberField(blank=True, null=True)
     
+    
+
+""" This class provides the information that was provided by the DataTree
+    anchor of each Userbit.  For example:
+        URI V/Flags/Registration/Enrolled (name = 'Enrolled') -> 'name'
+        Friendly name 'Student is enrolled in the class' -> 'description'
+    In general, intermediate models for many-to-many relationships can 
+    include a foreign key to this model unless it the relationships are
+    inherently unambiguous.  There are too many different ways
+    for students to be associated with a class for there to be a
+    separate relationship for each (i.e. 'enrolled_students' field,
+    'applied_students', etc.)
+    
+    Note: These models fit better in class_.py but cause validation errors
+    due to Django's import scheme if they are placed there.
+"""
+class RegistrationType(models.Model):
+    #   The 'key' (not really the primary key since we may want duplicate names)
+    name = models.CharField(max_length=32)
+    description = models.TextField(blank=True, null=True)
+    #   Purely for bookkeeping on the part of administrators 
+    #   without reading the whole description
+    category = models.CharField(max_length=32)
+
+    @cache_function
+    def get_map(include=None, category=None):
+        #   If 'include' is specified, make sure we have keys named in that list
+        if include:
+            if not isinstance(category, str):
+                raise ESPError(True), 'Need to supply category to RegistrationType.get_map() when passing include arguments'
+            for name in include:
+                type, created = RegistrationType.objects.get_or_create(name=name, category=category)
+        
+        #   Build a dictionary where names point to RegistrationType objects
+        result = {}
+        for item in RegistrationType.objects.all():
+            result[item.name] = item
+        return result
+    get_map.depend_on_model(lambda: RegistrationType)
+    get_map = staticmethod(get_map)
+
+    def __unicode__(self):
+        return self.name
+
+class StudentRegistration(models.Model):
+    section = models.ForeignKey('ClassSection')
+    #   section = models.ForeignKey(get_model('program', 'ClassSection'))
+    user = AjaxForeignKey(ESPUser)
+    
+    relationship = models.ForeignKey(RegistrationType)   #   Same as userbit verb after V/Flags/Registration/
+    start_date = models.DateTimeField(default=datetime.now)
+    end_date = models.DateTimeField(default=datetime(9999,1,1))    
+    
+    def expire(self):
+        self.end_date = datetime.now()
+        self.save()
+    
+    @staticmethod
+    def valid_objects():
+        now = datetime.now()
+        return StudentRegistration.objects.filter(start_date__lte=now, end_date__gte=now)
+    
+    def __unicode__(self):
+        return u'%s %s in %s' % (self.user, self.relationship, self.section)
     
 from esp.program.models.class_ import *
 from esp.program.models.app_ import *

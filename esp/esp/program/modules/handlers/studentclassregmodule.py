@@ -136,43 +136,27 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
 
     def students(self, QObject = False):
         from django.db.models import Q
-        verb_base = DataTree.get_by_uri('V/Flags/Registration')
 
         now = datetime.now()
 
-        Par = Q(userbit__qsc__parent__parent=self.program.classes_node())
-        Reg = QTree(userbit__verb__below = verb_base)
-        Unexpired = Q(userbit__enddate__gte=now, userbit__startdate__lte=now) # Assumes that, for all still-valid reg userbits, we don't care about startdate, and enddate is null.
+        Par = Q(studentregistration__section__parent_class__parent_program=self.program)
+        Unexpired = Q(studentregistration__end_date__gte=now, studentregistration__start_date__lte=now) # Assumes that, for all still-valid registrations, we don't care about startdate, and enddate is null.
         
         if QObject:
-            retVal = {'classreg': self.getQForUser(Par & Unexpired & Reg)}
+            retVal = {'classreg': self.getQForUser(Par & Unexpired)}
         else:
-            retVal = {'classreg': User.objects.filter(Par & Unexpired & Reg).distinct()}
+            retVal = {'classreg': ESPUser.objects.filter(Par & Unexpired).distinct()}
 
         allowed_student_types = Tag.getTag("allowed_student_types", target = self.program)
         if allowed_student_types:
             allowed_student_types = allowed_student_types.split(",")
             for stutype in allowed_student_types:
-                """ This code can't find registered students of the allowed types
-                    because the Q object needs to check for 2 different user 
-                    bits: the one that shows they're registered for classes and the 
-                    one that shows they have the right user role.
-                    As it is now, this selects all users of the allowed types;
-                    intersections with the 'classreg' students can be performed via
-                    the comm panel.
-                    Please change this if you have a preferred behavior and a way to
-                    implement it.           - Michael P, 4/14/2010
-                """
                 VerbParent = Q(userbit__verb__parent=GetNode("V/Flags/UserRole"))
                 VerbName = Q(userbit__verb__name=stutype)
-                          
                 if QObject:
-                    retVal[stutype] = self.getQForUser(Unexpired & VerbName & VerbParent)
-                    #   This would be nice, but unfortunately doesn't work:
-                    #   retVal[stutype] = self.getQForUser(Par & Unexpired & Reg & VerbName & VerbParent)
+                    retVal[stutype] = self.getQForUser(Par & Unexpired & Reg & VerbName & VerbParent)
                 else:
-                    #   retVal[stutype] = User.objects.filter(Unexpired & VerbName & VerbParent).distinct()
-                    retVal[stutype] = retVal['classreg'].filter(userbit__enddate__gte=now, userbit__startdate__lte=now, userbit__verb__parent=GetNode("V/Flags/UserRole"), userbit__verb__name=stutype).distinct() 
+                    retVal[stutype] = ESPUser.objects.filter(Par & Unexpired & Reg & VerbName & VerbParent).distinct()
 
         return retVal
 
@@ -209,7 +193,7 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
         regProf = RegistrationProfile.getLastForProgram(self.user, self.program)
         timeslots = self.program.getTimeSlotList(exclude_compulsory=False)
         classList = ClassSection.prefetch_catalog_data(regProf.preregistered_classes())
-        
+
         prevTimeSlot = None
         blockCount = 0
 
@@ -273,12 +257,12 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
     def ajax_schedule(self, request, tl, one, two, module, extra, prog):
         import simplejson as json
         from django.template.loader import render_to_string
-        user_sections = self.user.getSections(self.program)
         context = self.prepare({})
         context['prog'] = self.program
         context['one'] = one
         context['two'] = two
-        context['num_classes'] = user_sections.count()
+        #   This should be populated by self.prepare()
+        context['num_classes'] = len(context['timeslots'])
         schedule_str = render_to_string('users/student_schedule_inline.html', context)
         script_str = render_to_string('users/student_schedule_inline.js', context)
         json_data = {'student_schedule_html': schedule_str, 'script': script_str}
@@ -379,10 +363,10 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
 
         section = ClassSection.objects.get(id=sectionid)
         if not scrmi.use_priority:
-            error = section.cannotAdd(self.user,self.enforce_max,use_cache=False)
+            error = section.cannotAdd(self.user,self.enforce_max)
         if scrmi.use_priority or not error:
             cobj = ClassSubject.objects.get(id=classid)
-            error = cobj.cannotAdd(self.user,self.enforce_max,use_cache=False) or section.cannotAdd(self.user, self.enforce_max, use_cache=False)
+            error = cobj.cannotAdd(self.user,self.enforce_max) or section.cannotAdd(self.user, self.enforce_max)
 
         if scrmi.use_priority:
             priority = self.user.getRegistrationPriority(prog, section.meeting_times.all())
@@ -399,9 +383,9 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
                 for cls in ClassSubject.objects.filter(id__in=implication.member_id_ints):
                     #   Override size limits on subprogram classes (checkFull=False). -Michael P
                     sec = cls.default_section()
-                    if sec.cannotAdd(self.user, checkFull=False, use_cache=False):
+                    if sec.cannotAdd(self.user, checkFull=False):
                         blocked_class = cls
-                        cannotadd_error = sec.cannotAdd(self.user, checkFull=False, use_cache=False)
+                        cannotadd_error = sec.cannotAdd(self.user, checkFull=False)
                     else:
                         if sec.preregister_student(self.user, overridefull=True, automatic=True, priority=priority, prereg_verb = prereg_verb):
                             auto_classes.append(sec)
@@ -423,7 +407,7 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
             raise ESPError(False), error
         
         #   Desired priority level is 1 above current max
-        if section.preregister_student(self.user, self.user.onsite_local, False, priority, prereg_verb = prereg_verb):
+        if section.preregister_student(self.user, self.user.onsite_local, priority, prereg_verb = prereg_verb):
             bits = UserBit.objects.filter(user=self.user, verb=GetNode("V/Flags/Public"), qsc=GetNode("/".join(prog.anchor.tree_encode()) + "/Confirmation")).filter(enddate__gte=datetime.now())
             if bits.count() == 0 and Tag.getTag('confirm_on_addclass'):
                 bit = UserBit.objects.create(user=self.user, verb=GetNode("V/Flags/Public"), qsc=GetNode("/".join(prog.anchor.tree_encode()) + "/Confirmation"))
@@ -697,38 +681,16 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
     def clearslot_logic(self, request, tl, one, two, module, extra, prog):
         """ Clear the specified timeslot from a student registration and return True if there are no errors """
         
-        #   The registration verb can be anything under this.
-        v_registered_base = request.get_node('V/Flags/Registration')
-        
-        #   This query just gets worse and worse.   -Michael
-        #   Maybe a little better with QTree?   -Axiak
-        oldclasses = ClassSection.objects.filter(
-            QTree(anchor__userbit_qsc__verb__below = v_registered_base),
-            meeting_times=extra,
-            parent_class__parent_program = self.program,
-            anchor__userbit_qsc__user = self.user).distinct()
-                             
+        #   Get the sections that the student is registered for in the specified timeslot.
+        oldclasses = self.user.getSections(prog).filter(meeting_times=extra)
         #   Narrow this down to one class if we're using the priority system.
         if request.GET.has_key('sec_id'):
             oldclasses = oldclasses.filter(id=request.GET['sec_id'])
-                             
-        #classes = self.user.getEnrolledClasses()
-        class_ids = [c.parent_class.id for c in oldclasses]
-        for cls in oldclasses:
-            # Make sure deletion doesn't violate any class implications before proceeding
-            for implication in ClassImplication.objects.filter(cls__in=class_ids, enforce=True, parent__isnull=True):
-                if implication.fails_implication(self.user, without_classes=set([cls.id])):
-                    raise ESPError(False), 'This class is required for your %s class "%s"! To remove this class, please remove the one that requires it through <a href="%sstudentreg">%s Student Registration</a>.' % (implication.cls.parent_program.niceName(), implication.cls.title(), implication.cls.parent_program.get_learn_url(), implication.cls.parent_program.niceName())
-            cls.unpreregister_student(self.user)
-            
-            # Undo auto-registrations of sections
-            for implication in ClassImplication.objects.filter(cls=cls, enforce=True):
-                for auto_class in ClassSubject.objects.filter(id__in=implication.member_id_ints):
-                    auto_class.unpreregister_student(self.user)
-            
+        #   Take the student out
+        for sec in oldclasses:
+            sec.unpreregister_student(self.user)
         #   Return the ID of classes that were removed.
         return oldclasses.values_list('id', flat=True)
-
 
     @aux_call
     @needs_student
@@ -801,7 +763,7 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
         
         # Checking if we can register for the new class
         newclass = ClassSubject.objects.filter(id=classid)[0]
-        error = newclass.cannotAdd(self.user, self.enforce_max, use_cache=False)
+        error = newclass.cannotAdd(self.user, self.enforce_max)
         if error and not self.user.onsite_local:
             # Undo by re-registering the old class. Theoretically "overridefull" is okay, since they were already registered for oldclass anyway.
             oldclass.preregister_student(self.user, overridefull=True, automatic=automatic)
