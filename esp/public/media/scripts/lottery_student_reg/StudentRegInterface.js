@@ -57,8 +57,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	                {
 			    xtype: 'displayfield',
 			    value: this.reg_instructions,
-			    preventScrollbars: true,
-			    //width: 700
+			    preventScrollbars: true
 			}
                     ]
 		}
@@ -107,7 +106,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			scope: this,
 			fn: this.makeTabs
 		    }
-		},		
+		}		
 	    });
 	    },
     
@@ -221,14 +220,14 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	     flagged_classes.push({
 		     xtype: 'button',
 		     text: 'Show me my priority classes!',
-		     handler: this.promptCheck,
+		     handler: this.promptCheck
 	     });
 
 	     //adds above to a form
 	     Ext.getCmp('sri').add({
 		     xtype: 'form',
 		     title: 'Confirm Registration',
-		     items: flagged_classes,
+		     items: flagged_classes
 		     });
      },
 
@@ -302,7 +301,7 @@ Ext.reg('lottery_student_reg', StudentRegInterface);
 var win = new Ext.Window({
 	closable: false,
 	items: [{ xtype: 'lottery_student_reg', 
-		  id: 'sri',
+		  id: 'sri'
 	      }],
 	title: 'Splash! 2010 Class Lottery - ' + esp_user["cur_first_name"] + ' ' + esp_user["cur_last_name"] + ' (grade ' + esp_user["cur_grade"] + ')'
 });
