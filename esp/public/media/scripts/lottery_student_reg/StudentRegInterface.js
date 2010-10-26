@@ -20,7 +20,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		 'Twelfth class period: 9:05 - 9:55 PM'
 		     ],
 
-    reg_instructions: "Welcome to Splash lottery registration!<br><br>Instructions:<br><br>Each time slot during Splash has it\'s own tab on this page. For every time slot you want to attend:<br><br>1. Click the tab with the name of that timeslot.  You will see a list of classes.<br><br>2. Select one class to be your \"priority\" class using the circular button on the left. This class is the class you most want to be in during that particular time slot. You do not have to select a priority class, but it is in your best interest to do so, since you have a higher chance of getting into your priority class. We do not guarantee placement into priority classes; we merely give them preferential status in the lottery process, and we expect students to get about 1/3 of their priority classes.<br><br>3. Select as many other classes as you want using the checkboxes. Checking a checkbox says that you are OK with attending this class. If you can’t be placed into your priority class, we will then try to place you into one of these classes. Once again we don’t guarantee placement into these checked classes. It is recommended that you check off at least 8 classes so that you will have a good chance of getting into one of them.<br><br>It is a good idea to have another window or tab in your internet browser open with the catalog and course descriptions for easy reference.<br><br>Note: Classes with the same name listed under different time slots are the same class, just taught at different times. You are entering the lottery for a specific instance of a class during a specific time slot.<br><br>Finally when you are done with all the timeslots you want to be at Splash, go to the \"Confirm Registration\" tab and click \"Show me my priority classes!\" You will see a list of classes you flagged.  If those are the classes you want, click \"Confirm Registration.\"  You will be notified by email when results of the lottery are posted on November 6th.<br><br>For more information on the lottery see the Student Registration FAQ",
+    reg_instructions: "Welcome to Splash lottery registration!<br><br>Instructions:<br><br>Each time slot during Splash has it\'s own tab on this page. For every time slot you want to attend:<br><br>1. Click the tab with the name of that timeslot.  You will see a list of classes.<br><br>2. Select one class to be your \"priority\" class using the circular button on the left. This class is the class you most want to be in during that particular time slot. You do not have to select a priority class, but it is in your best interest to do so, since you have a higher chance of getting into your priority class. We do not guarantee placement into priority classes; we merely give them preferential status in the lottery process, and we expect students to get about 1/3 of their priority classes.<br><br>3. Select as many other classes as you want using the checkboxes. Checking a checkbox says that you are OK with attending this class. If you can’t be placed into your priority class, we will then try to place you into one of these classes. Once again we don’t guarantee placement into these checked classes. It is recommended that you check off at least 8 classes so that you will have a good chance of getting into one of them.<br><br>It is a good idea to have another window or tab in your internet browser open with the catalog and course descriptions for easy reference.<br><a href=\"http://esp.mit.edu/learn/Splash/2010/catalog\" target=\"_blank\">Click here to open the catalog in another window.</a><br><br>Note: Classes with the same name listed under different time slots are the same class, just taught at different times. You are entering the lottery for a specific instance of a class during a specific time slot.<br><br>Finally when you are done with all the timeslots you want to be at Splash, go to the \"Confirm Registration\" tab and click \"Show me my priority classes!\" You will see a list of classes you flagged.  If those are the classes you want, click \"Confirm Registration.\"  You will be notified by email when results of the lottery are posted on November 6th.<br><br>For more information on the lottery see the Student Registration FAQ",
 
     initComponent: function () {
         grade = 7;
@@ -117,13 +117,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			id: this.tab_names[i],
 			title: this.tab_names[i],
 			items: 
-			[
-			    /*{
-		                xtype: 'field',
-				id: flag_id+ '_field',
-				fieldLabel: 'Flagged Class'
-			    }*/
-			 ],
+			[ ],
 			listeners: {
 			    render: function() { num_opened_tabs++; }
 			}
@@ -134,6 +128,9 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	    { 
 		r = records[i];
 		
+		//no walk-in seminars
+		if (r.data.category.category != 'Walk-in Seminar'){
+
 		//grade check
 		if (r.data.grade_min <= grade && r.data.grade_max >= grade ) {
 
@@ -189,7 +186,8 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			});
 		    }
 		}
-		}
+		}//end if for walk in seminars
+		}//end if for grade check
 	    }
 	
 	    //adds tabs to tabpanel
