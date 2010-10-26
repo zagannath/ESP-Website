@@ -55,6 +55,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		    items: [
 	                {
 			    xtype: 'displayfield',
+			    autoHeight: 'true',
 			    value: this.reg_instructions,
 			    preventScrollbars: true
 			}
@@ -127,6 +128,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			items: 
 			[ ],
 			autoHeight: true,
+			autoScroll: true,
 			listeners: {
 			    render: function() { num_opened_tabs++; }
 			}
@@ -188,6 +190,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			               { 
 					   xtype: 'displayfield',
 					   value: text,
+					   autoHeight: true,
 					   id: 'title_'+ checkbox_id 
 				       }
 				    ]
@@ -221,6 +224,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	     //adds textarea with some explanation
 	     flagged_classes.push({
 		     xtype: 'displayfield',
+		     autoHeight: true,
 		     width: '600',
 		     value: 'To register for the Splash lottery, click "Show me my priority classes!"<br><br>  If you like what you see, "Confirm Registration" to enter the Splash! class lottery.'
 	     });
