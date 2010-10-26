@@ -205,7 +205,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	    if (grade == 7 || grade == 8){
 		for(i = 9; i<=12; i++){
 		    tabs[this.tab_names[i]].add({
-			    xtype: displayField,
+			    xtype: 'displayField',
 			    value: 'There are no middle school classes during this block.'
 			})
 		}
