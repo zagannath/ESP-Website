@@ -49,7 +49,6 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			    xtype: 'displayfield',
 			    value: this.reg_instructions,
 			    preventScrollbars: true
-			    //width: 700
 			}
                     ]
 		}
