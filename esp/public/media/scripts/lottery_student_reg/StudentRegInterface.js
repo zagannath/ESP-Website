@@ -294,7 +294,7 @@ var win = new Ext.Window({
 	items: [{ xtype: 'lottery_student_reg', 
 		  id: 'sri'
 	      }],
-	title: 'Splash! 2010 Class Lottery'
+	title: 'Splash! 3010 Class Lottery'
 });
 
 Ext.onReady(function() {
