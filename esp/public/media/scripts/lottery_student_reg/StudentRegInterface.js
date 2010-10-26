@@ -6,42 +6,33 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
     //names of the timeblocks in the django database.  configure per program.
     //this is necessary so they can be in order
     tab_names:  [
-		     'Sat 9:05 - 9:55 AM', 
-		     'Sat 10:05 - 10:55 AM', 
-		     'Sat 11:05 - 11:55 AM', 
-		     'Sat 12:05 - 12:55 PM (lunch)', 
-		     'Sat 1:05 - 1:55 PM (lunch)', 
-		     'Sat 2:05 - 2:55 PM', 
-		     'Sat 3:05 - 3:55 PM', 
-		     'Sat 4:05 - 4:55 PM', 
-		     'Sat 5:05 - 5:55 PM', 
-		     'Sat 7:05 - 7:55 PM', 
-		     'Sat 8:05 - 8:55 PM', 
-		     'Sat 9:05 - 9:55 PM',
-		     'Sun 9:05 - 9:55 AM', 
-		     'Sun 10:05 - 10:55 SM', 
-		     'Sun 11:05 - 11:55 AM', 
-		     'Sun 12:05 - 12:55 PM (lunch)', 
-		     'Sun 1:05 - 1:55 PM (lunch)', 
-		     'Sun 2:05 - 2:55 PM', 
-		     'Sun 3:05 - 3:55 PM', 
-		     'Sun 4:05 - 4:55 PM', 
-		     'Sun 5:05 - 5:55 PM', 
-		     'Sun 6:05 - 6:55 PM'
+		 'First class period: Sat 9:05 - 9:55 AM',
+		 'Second class period: 10:05 - 10:55 AM',
+		 'Third class period: 11:05 - 11:55 AM',
+		 'Fourth class period: 12:05 - 12:55 PM\r\n\r\nLunch A will run during this hour.',
+		 'Fifth class period: 1:05 - 1:55 PM\r\n\r\nLunch B will run during this hour.',
+		 'Sixth class period: 2:05 - 2:55',
+		 'Seventh class period: 3:05 - 3:55 PM',
+		 'Eighth class period: 4:05 - 4:55 PM',
+		 'Ninth class period: 5:05 - 5:55 PM',
+		 'Tenth class period: 7:05 - 7:55 PM',
+		 'Eleventh class period: 8:05 - 8:55 PM',
+		 'Twelfth class period: 9:05 - 9:55 PM'
 		     ],
-    //num_tabs: 12,
-    //num_opened_tabs: 0,
-         
+
+    reg_instructions: "Welcome to Splash lottery registration!<br><br>Instructions:<br><br>Each time slot during Splash has it\'s own tab on this page. For every time slot you want to attend:<br><br>1. Click the tab with the name of that timeslot.  You will see a list of classes.<br><br>2. Select one class to be your \"priority\" class using the circular button on the left. This class is the class you most want to be in during that particular time slot. You do not have to select a priority class, but it is in your best interest to do so, since you have a higher chance of getting into your priority class. We do not guarantee placement into priority classes; we merely give them preferential status in the lottery process, and we expect students to get about 1/3 of their priority classes.<br><br>3. Select as many other classes as you want using the checkboxes. Checking a checkbox says that you are OK with attending this class. If you can’t be placed into your priority class, we will then try to place you into one of these classes. Once again we don’t guarantee placement into these checked classes. It is recommended that you check off at least 8 classes so that you will have a good chance of getting into one of them.<br><br>It is a good idea to have another window or tab in your internet browser open with the catalog and course descriptions for easy reference.<br><a href=\"http://esp.mit.edu/learn/Splash/2010/catalog\" target=\"_blank\">Click here to open the catalog in another window.</a><br><br>Note: Classes with the same name listed under different time slots are the same class, just taught at different times. You are entering the lottery for a specific instance of a class during a specific time slot.<br><br>Finally when you are done with all the timeslots you want to be at Splash, go to the \"Confirm Registration\" tab and click \"Show me my priority classes!\" You will see a list of classes you flagged.  If those are the classes you want, click \"Confirm Registration.\"  You will be notified by email when results of the lottery are posted on November 6th.<br><br>For more information on the lottery see the Student Registration FAQ",
 
     initComponent: function () {
+        grade = 7;
+
 	num_tabs = this.tab_names.length;
 	num_opened_tabs = 0;
 
 	var config = {
 	    id: 'sri',
-	    width: 1200,
+	    width: 800,
 	    autoHeight: true,
-	    autoScroll: true,
+	    //autoScroll: true,
 	    deferredRender: true,
 	    forceLayout: true,
 	    closeable: false,
@@ -56,13 +47,9 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		    items: [
 	                {
 			    xtype: 'displayfield',
-			    value: '<p>Welcome To Splash Lottery Registration!<\p>'
-			},
-	                {
-			    xtype: 'textarea',
-			    value: 'Here are some instructions on how to register for the Splash Lottery',
+			    value: this.reg_instructions,
 			    preventScrollbars: true,
-			    width: 700
+			    //width: 700
 			}
                     ]
 		}
@@ -96,16 +83,22 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
                 },
 	        {
 		    name: 'get_sections'
-	        }
+	        },
+	        {
+		    name: 'category'
+		},
+	        {
+		    name: 'description'
+	        } 
 		//fields needed for class id generation
 		],
-		proxy: new Ext.data.HttpProxy({ url: '/learn/Splash/2010/catalog_json' }),
+		proxy: new Ext.data.HttpProxy({ url: '/learn/Spark/2010/catalog_json' }),
 		listeners: {
 		    load: {
 			scope: this,
 			fn: this.makeTabs
 		    }
-		}
+		},		
 	    });
 	    },
     
@@ -124,13 +117,8 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			id: this.tab_names[i],
 			title: this.tab_names[i],
 			items: 
-			[
-			    /*{
-		                xtype: 'field',
-				id: flag_id+ '_field',
-				fieldLabel: 'Flagged Class'
-			    }*/
-			 ],
+			[ ],
+			autoHeight: true,
 			listeners: {
 			    render: function() { num_opened_tabs++; }
 			}
@@ -140,6 +128,13 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	    for (i = 0; i < records.length; i++)
 	    { 
 		r = records[i];
+		
+		//no walk-in seminars
+		if (r.data.category.category != 'Walk-in Seminar'){
+
+		//grade check
+		if (r.data.grade_min <= grade && r.data.grade_max >= grade ) {
+
 		num_sections = r.data.get_sections.length;
 		//itterate through times a class is offered
 		for (j = 0; j < num_sections; j ++)
@@ -152,7 +147,14 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 
 			//puts id of checkbox in the master list
 			checkbox_id = r.data.get_sections[j].id;
-			checkbox_ids.push(checkbox_id)
+			checkbox_ids.push(checkbox_id);
+
+			//comes up with label for checkboxes
+			text = '';
+			text = text + r.data.category.symbol + r.data.id + ': ' + r.data.title + ', ';
+			end_timeblock = r.data.get_sections[j].get_meeting_times[r.data.get_sections[j].get_meeting_times.length-1];
+			text = text + timeblock.start.substring(11,16) + ' - ' + end_timeblock.end.substring(11,16);
+	
 
 			tabs[timeblock.short_description].items.push({
 				    xtype: 'fieldset',
@@ -177,7 +179,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 				       }, 
 			               { 
 					   xtype: 'displayfield',
-					   value: r.data.title,
+					   value: text,
 					   id: 'title_'+ checkbox_id 
 				       }
 				    ]
@@ -185,6 +187,8 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			});
 		    }
 		}
+		}//end if for walk in seminars
+		}//end if for grade check
 	    }
 	
 	    //adds tabs to tabpanel
@@ -200,38 +204,27 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	     //adds textarea with some explanation
 	     flagged_classes.push({
 		     xtype: 'displayfield',
-		     width: '700',
-		     value: 'Please make sure the flagged classes below are correct, then click "confirm registration"'
+		     width: '600',
+		     value: 'To register for the Splash lottery, click "Show me my priority classes!"<br><br>  If you like what you see, "Confirm Registration" to enter the Splash! class lottery.'
 	     });
-
-	/*
-	     for (i=0; i < num_tabs; i++){
-		 if(tabs[this.tab_names[i]]){
-		     flagged_classes.push({
-			     xtype: 'field',
-			     id: 'confirm_flag'+this.tab_names[i], 
-			     fieldLabel: this.tab_names[i],
-		     });
-		 }
-		 }*/
 
 	     //adds "confirm registration" button
 	     flagged_classes.push({
 		     xtype: 'button',
-		     text: 'Confirm Registration!',
-		     handler: this.allTabsCheck
+		     text: 'Show me my priority classes!',
+		     handler: this.promptCheck,
 	     });
 
 	     //adds above to a form
 	     Ext.getCmp('sri').add({
 		     xtype: 'form',
 		     title: 'Confirm Registration',
-		     items: flagged_classes
+		     items: flagged_classes,
 		     });
      },
 
     allTabsCheck: function() {
-	    if (num_opened_tabs = num_tabs){Ext.getCmp('sri').promptCheck();}
+	    if (num_opened_tabs = num_tabs){Ext.getCmp('sri').confirmRegistration();}
 		    Ext.Msg.show({
 			    title: 'Wait!',
 			    msg: "You haven't filled out preferences for every time slot.",
@@ -239,7 +232,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			    fn: function(button){
 				if(button == 'ok') {
 				    for(j = 0; j < num_tabs; j++) { Ext.getCmp('sri').setActiveTab(i);} 
-				    Ext.getCmp('sri').promptCheck();
+				    Ext.getCmp('sri').confirmRegistration();
 				}
 				if(button == 'cancel') { Ext.Msg.hide(); }
 			    }
@@ -255,11 +248,11 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		}
 	    }
 	    Ext.Msg.show({
-		    title:  'Flagged Classes',
+		    title:  'Priority Classes',
 		    msg: flagged_classes,
 		    buttons: {ok:'These look good.  Enter me into the Splash lottery!', cancel:'Wait!  No!  Let me go back and edit them!'},
 		    fn: function(button) {
-			if (button == 'ok'){Ext.getCmp('sri').confirmRegistration();}
+			if (button == 'ok'){Ext.getCmp('sri').allTabsCheck();}
 			if (button == 'cancel'){Ext.Msg.hide();}
 		    }
 		});
@@ -299,9 +292,10 @@ Ext.reg('lottery_student_reg', StudentRegInterface);
 
 var win = new Ext.Window({
 	closable: false,
-	items: [{ xtype: 'lottery_student_reg', id: 'sri'}
-		//submitForm
-        ]
+	items: [{ xtype: 'lottery_student_reg', 
+		  id: 'sri',
+	      }],
+	title: 'Splash! 2010 Class Lottery'
 });
 
 Ext.onReady(function() {
