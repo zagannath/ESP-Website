@@ -92,13 +92,13 @@ def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spa
         parts = reg_token.split('_')
         if parts[0] == 'flag':
             ## Flagged class
-            flag, secid, blockid = parts
+            flag, secid = parts
             if reg_status:
                 classes_flagged.add(int(secid))
             else:
                 classes_not_flagged.add(int(secid))
         else:
-            secid, blockid = parts
+            secid = parts[0]
             if reg_status:
                 classes_interest.add(int(secid))
                 classes_no_interest.add(int(secid))
