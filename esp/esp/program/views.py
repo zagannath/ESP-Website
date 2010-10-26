@@ -39,6 +39,8 @@ from esp.users.models import ESPUser, UserBit, GetNodeOrNoBits, admin_required, 
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.db.models.query import Q
+from django.db.models import Max
+from django.db import transaction
 from django.core.mail import mail_admins
 from django.core.cache import cache
 from django.views.decorators.csrf import csrf_exempt
@@ -47,7 +49,7 @@ from django.http import HttpResponse
 from django import forms
 
 from esp.datatree.sql.query_utils import QTree
-from esp.program.models import Program, TeacherBio
+from esp.program.models import Program, TeacherBio, RegistrationType, ClassSection
 from esp.program.forms import ProgramCreationForm, StatisticsQueryForm
 from esp.program.setup import prepare_program, commit_program
 from esp.accounting_docs.models import Document
@@ -55,6 +57,8 @@ from esp.middleware import ESPError
 from esp.accounting_core.models import LineItemType, CompletedTransactionException
 from esp.mailman import create_list, load_list_settings, apply_list_settings, add_list_member
 from esp.settings import SITE_INFO
+
+from collections import defaultdict
 
 import pickle
 import operator
@@ -71,9 +75,86 @@ def lottery_student_reg(request):
     
     return render_to_response('program/modules/lottery_student_reg/student_reg.html', request, None, {})
 
-def lsr_submit(something):
-    print 'ahhhhhhhhh'
-    return render_to_response('index.html', something, None, {})
+#@transaction.commit_manually
+def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spark/2010")):
+    data = json.loads(request.POST['json_data'])
+
+    classes_interest = set()
+    classes_no_interest = set()
+    classes_flagged = set()
+    classes_not_flagged = set()
+
+    reg_priority, created = RegistrationType.objects.get_or_create(name="Priority/1", category="student")
+    reg_interested, created = RegistrationType.objects.get_or_create(name="Interested", category="student",
+                                                                     defaults={"description":"For lottery reg, a student would be interested in being placed into this class, but it isn't their first choice"})
+
+    for reg_token, reg_status in data.iteritems():
+        parts = reg_token.split('_')
+        if parts[0] == 'flag':
+            ## Flagged class
+            flag, secid, blockid = parts
+            if reg_status:
+                classes_flagged.add(int(secid))
+            else:
+                classes_not_flagged.add(int(secid))
+        else:
+            secid, blockid = parts
+            if reg_status:
+                classes_interest.add(int(secid))
+                classes_no_interest.add(int(secid))
+
+    print "classes_interest", classes_interest
+    print "classes_flagged", classes_flagged
+    
+    errors = []
+
+    already_flagged_sections = request.user.getSections(program=program, verbs=[reg_priority]).annotate(first_block=Max('meeting_times__start'))
+    already_flagged_secids = set(int(x.id) for x in already_flagged_sections)
+    
+    flag_related_sections = classes_flagged | classes_not_flagged
+    flagworthy_sections = ClassSection.objects.filter(id__in=flag_related_sections-already_flagged_secids).select_related('anchor').annotate(first_block=Max('meeting_times__start'))
+    
+    sections_by_block = defaultdict(list)
+    sections_by_id = {}
+    for s in list(flagworthy_sections) + list(already_flagged_sections):
+        sections_by_id[int(s.id)] = s
+        if int(s.id) not in classes_not_flagged:
+            sections_by_block[s.first_block].append(s)
+
+    print sorted(sections_by_id.keys())
+
+    for val in sections_by_block.values():
+        if len(val) > 1:
+            errors.append({"text": "Can't flag two classes at the same time!", "cls_sections": [x.id for x in val], "block": val[0].firstBlockEvent().id, "flagged": True})
+
+    if len(errors) == 0:
+        for s_id in (already_flagged_secids - classes_flagged):
+            sections_by_id[s_id].unpreregister_student(request.user, prereg_verb=reg_priority.name)
+            print "un-reg_priority", s_id
+        for s_id in classes_flagged - already_flagged_secids:
+            print "reg_priority", s_id
+            if not sections_by_id[s_id].preregister_student(request.user, prereg_verb=reg_priority.name):
+                errors.append({"text": "Unable to add flagged class", "cls_sections": [s_id], "block": None, "flagged": True})
+
+
+    already_interested_sections = request.user.getSections(program=program, verbs=[reg_interested])
+    already_interested_secids = set(int(x.id) for x in already_interested_sections)
+    interest_related_sections = classes_interest | classes_no_interest
+    sections = ClassSection.objects.filter(id__in = (interest_related_sections - flag_related_sections - already_flagged_secids - already_interested_secids)).select_related('anchor')
+
+    ## No need to reset sections_by_id
+    for s in list(sections) + list(already_interested_sections):
+        sections_by_id[int(s.id)] = s
+
+    for s_id in (already_interested_secids - classes_interest):
+        sections_by_id[s_id].unpreregister_student(request.user, prereg_verb=reg_interested.name)
+    for s_id in classes_interest - already_interested_secids:
+        if not sections_by_id[s_id].preregister_student(request.user, prereg_verb=reg_interested.name):
+            errors.append({"text": "Unable to add interested class", "cls_sections": [s_id], "block": None, "flagged": False})
+
+    print "errors", errors
+
+    return HttpResponse(json.dumps(errors), mimetype='application/json')
 
 def find_user(userstr):
     """
