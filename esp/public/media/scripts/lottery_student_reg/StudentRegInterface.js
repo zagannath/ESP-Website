@@ -43,14 +43,14 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	        {
 		    title: 'Instructions',
 		    xtype: 'panel',
-		    id: 'instructions',
 		    items: [
 	                {
 			    xtype: 'displayfield',
 			    value: this.reg_instructions,
 			    preventScrollbars: true
 			}
-                    ]
+		    ],
+		    id: 'instructions'
 		}
             ]
 	};
@@ -189,6 +189,15 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		}//end if for walk in seminars
 		}//end if for grade check
 	    }
+
+	    if (grade == 7 || grade == 8){
+		for(i = 9; i<=12; i++){
+		    tabs[this.tab_names[i]].add({
+			    xtype: displayfield,
+			    value: 'There are no middle school classes during this block.'
+			})
+		}
+	    }
 	
 	    //adds tabs to tabpanel
 	    for (i = 0; i < num_tabs; i ++)
@@ -294,7 +303,7 @@ var win = new Ext.Window({
 	items: [{ xtype: 'lottery_student_reg', 
 		  id: 'sri'
 	      }],
-	title: 'Splash! 3010 Class Lottery'
+	title: 'Splash! 2010 Class Lottery'
 });
 
 Ext.onReady(function() {
