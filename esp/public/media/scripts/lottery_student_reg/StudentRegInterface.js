@@ -118,7 +118,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			title: this.tab_names[i],
 			items: 
 			[ ],
-			autoHeight: true;
+			autoHeight: true,
 			listeners: {
 			    render: function() { num_opened_tabs++; }
 			}
