@@ -64,6 +64,7 @@ import pickle
 import operator
 import simplejson as json
 
+@login_required
 def lottery_student_reg(request):
     """
     Serve the student reg page.
@@ -71,12 +72,23 @@ def lottery_student_reg(request):
     This is just a static page;
     it gets all of its content from AJAX callbacks.
     """
+
+    # First check whether the user is actually a student.
+    if not request.user.isStudent():
+        raise ESPError(False), "You must be a student in order to access Splash student registration."
+
     context = {}
     
     return render_to_response('program/modules/lottery_student_reg/student_reg.html', request, None, {})
 
 #@transaction.commit_manually
+@login_required
 def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spark/2010")):
+
+    # First check whether the user is actually a student.
+    if not request.user.isStudent():
+        raise ESPError(False), "You must be a student in order to access Splash student registration."
+
     data = json.loads(request.POST['json_data'])
 
     classes_interest = set()
