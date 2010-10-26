@@ -96,7 +96,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
                 },
 	        {
 		    name: 'get_sections'
-	        },
+	        }
 		//fields needed for class id generation
 		],
 		proxy: new Ext.data.HttpProxy({ url: '/learn/Splash/2010/catalog_json' }),
@@ -105,7 +105,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			scope: this,
 			fn: this.makeTabs
 		    }
-		},		
+		}
 	    });
 	    },
     
@@ -219,14 +219,14 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	     flagged_classes.push({
 		     xtype: 'button',
 		     text: 'Confirm Registration!',
-		     handler: this.allTabsCheck,
+		     handler: this.allTabsCheck
 	     });
 
 	     //adds above to a form
 	     Ext.getCmp('sri').add({
 		     xtype: 'form',
 		     title: 'Confirm Registration',
-		     items: flagged_classes,
+		     items: flagged_classes
 		     });
      },
 
@@ -299,9 +299,9 @@ Ext.reg('lottery_student_reg', StudentRegInterface);
 
 var win = new Ext.Window({
 	closable: false,
-	items: [{ xtype: 'lottery_student_reg', id: 'sri'},
+	items: [{ xtype: 'lottery_student_reg', id: 'sri'}
 		//submitForm
-        ],
+        ]
 });
 
 Ext.onReady(function() {
