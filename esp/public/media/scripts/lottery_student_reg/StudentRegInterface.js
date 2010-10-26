@@ -40,7 +40,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	var config = {
 	    id: 'sri',
 	    width: 800,
-	    autoHeight: true,
+	    height: 450,
 	    //autoScroll: true,
 	    deferredRender: true,
 	    forceLayout: true,
@@ -55,7 +55,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		    items: [
 	                {
 			    xtype: 'displayfield',
-			    autoHeight: 'true',
+			    autoHeight: true,
 			    value: this.reg_instructions,
 			    preventScrollbars: true
 			}
@@ -205,7 +205,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	    if (grade == 7 || grade == 8){
 		for(i = 9; i<=12; i++){
 		    tabs[this.tab_names[i]].add({
-			    xtype: displayfield,
+			    xtype: displayField,
 			    value: 'There are no middle school classes during this block.'
 			})
 		}
@@ -224,7 +224,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	     //adds textarea with some explanation
 	     flagged_classes.push({
 		     xtype: 'displayfield',
-		     autoHeight: true,
+		     height: 80,
 		     width: '600',
 		     value: 'To register for the Splash lottery, click "Show me my priority classes!"<br><br>  If you like what you see, "Confirm Registration" to enter the Splash! class lottery.'
 	     });
@@ -240,6 +240,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	     Ext.getCmp('sri').add({
 		     xtype: 'form',
 		     title: 'Confirm Registration',
+		     height: 200,
 		     items: flagged_classes
 		     });
      },
@@ -268,6 +269,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		    flagged_classes = flagged_classes + title + '<ul>';
 		}
 	    }
+	    flagged_classes = flagged_classes + '<br><br><b> After you enter the lottery, remember to finish registering on the main registration page.</b>'
 	    Ext.Msg.show({
 		    title:  'Priority Classes',
 		    msg: flagged_classes,
