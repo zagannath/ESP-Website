@@ -6,23 +6,36 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
     //names of the timeblocks in the django database.  configure per program.
     //this is necessary so they can be in order
     tab_names:  [
-		     'First class period: Sat 9:05 - 9:55 AM', 
-		     'Second class period: 10:05 - 10:55 AM', 
-		     'Third class period: 11:05 - 11:55 AM', 
-		     'Fourth class period: 12:05 - 12:55 PM\r\n\r\nLunch A will run during this hour.', 
-		     'Fifth class period: 1:05 - 1:55 PM\r\n\r\nLunch B will run during this hour.', 
-		     'Sixth class period: 2:05 - 2:55', 
-		     'Seventh class period: 3:05 - 3:55 PM', 
-		     'Eighth class period: 4:05 - 4:55 PM', 
-		     'Ninth class period: 5:05 - 5:55 PM', 
-		     'Tenth class period: 7:05 - 7:55 PM', 
-		     'Eleventh class period: 8:05 - 8:55 PM', 
-		     'Twelfth class period: 9:05 - 9:55 PM'
+		     'Sat 9:05 - 9:55 AM', 
+		     'Sat 10:05 - 10:55 AM', 
+		     'Sat 11:05 - 11:55 AM', 
+		     'Sat 12:05 - 12:55 PM (lunch)', 
+		     'Sat 1:05 - 1:55 PM (lunch)', 
+		     'Sat 2:05 - 2:55 PM', 
+		     'Sat 3:05 - 3:55 PM', 
+		     'Sat 4:05 - 4:55 PM', 
+		     'Sat 5:05 - 5:55 PM', 
+		     'Sat 7:05 - 7:55 PM', 
+		     'Sat 8:05 - 8:55 PM', 
+		     'Sat 9:05 - 9:55 PM',
+		     'Sun 9:05 - 9:55 AM', 
+		     'Sun 10:05 - 10:55 SM', 
+		     'Sun 11:05 - 11:55 AM', 
+		     'Sun 12:05 - 12:55 PM (lunch)', 
+		     'Sun 1:05 - 1:55 PM (lunch)', 
+		     'Sun 2:05 - 2:55 PM', 
+		     'Sun 3:05 - 3:55 PM', 
+		     'Sun 4:05 - 4:55 PM', 
+		     'Sun 5:05 - 5:55 PM', 
+		     'Sun 6:05 - 6:55 PM'
 		     ],
+    //num_tabs: 12,
+    //num_opened_tabs: 0,
          
 
     initComponent: function () {
 	num_tabs = this.tab_names.length;
+	num_opened_tabs = 0;
 
 	var config = {
 	    id: 'sri',
@@ -86,7 +99,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	        },
 		//fields needed for class id generation
 		],
-		proxy: new Ext.data.HttpProxy({ url: '/learn/Spark/2010/catalog_json' }),
+		proxy: new Ext.data.HttpProxy({ url: '/learn/Splash/2010/catalog_json' }),
 		listeners: {
 		    load: {
 			scope: this,
@@ -102,8 +115,9 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	tabs = [];
 
 	//makes tabs with id = short_description of timeblock
-	    for(i = 0; i < num_tabs; i++)
+	for(i = 0; i < num_tabs; i++)
 	    {
+		//alert(this.tab_names[i]);
 		tabs[this.tab_names[i]] = 
 		    {
 			xtype: 'form',
@@ -116,7 +130,10 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 				id: flag_id+ '_field',
 				fieldLabel: 'Flagged Class'
 			    }*/
-                        ]
+			 ],
+			listeners: {
+			    render: function() { num_opened_tabs++; }
+			}
 		    }
 	    }
 	    //itterate through records (classes)
@@ -131,14 +148,11 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		    {
 			timeblock = r.data.get_sections[j].get_meeting_times[0];
 		
+			flag_id = 'flag_'+timeblock.id
+
 			//puts id of checkbox in the master list
-			checkbox_id = r.data.id + '_' + timeblock.id;
-			checkbox_ids.push(checkbox_id);
-		
-			flag_id = 'flag_'+timeblock.id;
-			if(flag_ids.indexOf(flag_id)==-1){
-			    flag_ids.push(flag_id);
-			}
+			checkbox_id = r.data.get_sections[j].id;
+			checkbox_ids.push(checkbox_id)
 
 			tabs[timeblock.short_description].items.push({
 				    xtype: 'fieldset',
@@ -205,7 +219,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	     flagged_classes.push({
 		     xtype: 'button',
 		     text: 'Confirm Registration!',
-		     handler: this.promptCheck,
+		     handler: this.allTabsCheck,
 	     });
 
 	     //adds above to a form
@@ -215,6 +229,22 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		     items: flagged_classes,
 		     });
      },
+
+    allTabsCheck: function() {
+	    if (num_opened_tabs = num_tabs){Ext.getCmp('sri').promptCheck();}
+		    Ext.Msg.show({
+			    title: 'Wait!',
+			    msg: "You haven't filled out preferences for every time slot.",
+			    buttons: {ok:"That's fine.  I won't be attending splash then.", cancel:"No, let me go back and fill out the parts I missed!"},
+			    fn: function(button){
+				if(button == 'ok') {
+				    for(j = 0; j < num_tabs; j++) { Ext.getCmp('sri').setActiveTab(i);} 
+				    Ext.getCmp('sri').promptCheck();
+				}
+				if(button == 'cancel') { Ext.Msg.hide(); }
+			    }
+		    });
+	},
 
     promptCheck: function() {
 	    flagged_classes = 'Please check to see that these are the classes you intended to flag:<ul>';
@@ -258,7 +288,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	     data = Ext.encode(classes);
 	     Ext.Ajax.request({
 		     url: 'lsr_submit',
-		     params: data,
+		     params: {'json_data': data},
 		     method: 'POST'
 		 });
     }
