@@ -304,7 +304,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
             response = JSON.parse(data["responseText"]);
             if (response.length == 0)
             {
-                console.log("Registration successful.");
+                //  console.log("Registration successful.");
                 Ext.Msg.show({
                     title:  'Registration Successful',
                     msg: 'Your preferences have been stored in the ESP database and will be used to assign classes in the lottery on Nov. 2.',
@@ -320,7 +320,21 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
             }
             else
             {
-                console.log("Registration unsuccessful: " + JSON.stringify(response));
+                //  console.log("Registration unsuccessful: " + JSON.stringify(response));
+                msg_list = 'Some of your preferences have been stored in the ESP database.  Others caused problems: <br />';
+                for (var i = 0; i < response.length; i++)
+                {
+                    if (response[i].emailcode)
+                        msg_list = msg_list + response[i].emailcode + ': ' + response[i].text + '<br />';
+                }
+                Ext.Msg.show({
+                    title:  'Registration Problems',
+                    msg: msg_list,
+                    buttons: {ok: 'Return to edit preferences'},
+                    fn: function(button) {
+                        Ext.Msg.hide();
+                    }
+                });
             }
         };
 
