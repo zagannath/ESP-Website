@@ -39,7 +39,7 @@ from esp.users.models import ESPUser, UserBit, GetNodeOrNoBits, admin_required, 
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.db.models.query import Q
-from django.db.models import Max
+from django.db.models import Max, Min
 from django.db import transaction
 from django.core.mail import mail_admins
 from django.core.cache import cache
@@ -65,7 +65,7 @@ import operator
 import simplejson as json
 
 @login_required
-def lottery_student_reg(request):
+def lottery_student_reg(request, program = None):
     """
     Serve the student reg page.
 
@@ -83,7 +83,7 @@ def lottery_student_reg(request):
 
 #@transaction.commit_manually
 @login_required
-def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spark/2010")):
+def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Splash/2010")):
 
     # First check whether the user is actually a student.
     if not request.user.isStudent():
@@ -124,7 +124,7 @@ def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spa
     already_flagged_secids = set(int(x.id) for x in already_flagged_sections)
     
     flag_related_sections = classes_flagged | classes_not_flagged
-    flagworthy_sections = ClassSection.objects.filter(id__in=flag_related_sections-already_flagged_secids).select_related('anchor').annotate(first_block=Max('meeting_times__start'))
+    flagworthy_sections = ClassSection.objects.filter(id__in=flag_related_sections-already_flagged_secids).select_related('anchor').annotate(first_block=Min('meeting_times__start'))
     
     sections_by_block = defaultdict(list)
     sections_by_id = {}
@@ -145,9 +145,8 @@ def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spa
             print "un-reg_priority", s_id
         for s_id in classes_flagged - already_flagged_secids:
             print "reg_priority", s_id
-            if not sections_by_id[s_id].preregister_student(request.user, prereg_verb=reg_priority.name):
-                errors.append({"text": "Unable to add flagged class", "cls_sections": [s_id], "block": None, "flagged": True})
-
+            if not sections_by_id[s_id].preregister_student(request.user, prereg_verb=reg_priority.name, overridefull=True):
+                errors.append({"text": "Unable to add flagged class", "cls_sections": [s_id], "emailcode": sections_by_id[s_id].emailcode(), "block": None, "flagged": True})
 
     already_interested_sections = request.user.getSections(program=program, verbs=[reg_interested])
     already_interested_secids = set(int(x.id) for x in already_interested_sections)
@@ -161,8 +160,8 @@ def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spa
     for s_id in (already_interested_secids - classes_interest):
         sections_by_id[s_id].unpreregister_student(request.user, prereg_verb=reg_interested.name)
     for s_id in classes_interest - already_interested_secids:
-        if not sections_by_id[s_id].preregister_student(request.user, prereg_verb=reg_interested.name):
-            errors.append({"text": "Unable to add interested class", "cls_sections": [s_id], "block": None, "flagged": False})
+        if not sections_by_id[s_id].preregister_student(request.user, prereg_verb=reg_interested.name, overridefull=True):
+            errors.append({"text": "Unable to add interested class", "cls_sections": [s_id], "emailcode": sections_by_id[s_id].emailcode(), "block": None, "flagged": False})
 
     print "errors", errors
 

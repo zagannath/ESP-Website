@@ -28,9 +28,10 @@ MIT Educational Studies Program,
 Phone: 617-253-4882
 Email: web@esp.mit.edu
 """
-from esp.program.modules.base    import ProgramModuleObj, needs_admin, main_call, aux_call
+from esp.program.modules.base    import ProgramModuleObj, needs_admin, main_call, aux_call, meets_deadline, needs_student
 from esp.program.modules         import module_ext
 from esp.program.models          import Program, ClassSubject, ClassSection, ClassCategories
+from esp.program.views           import lottery_student_reg, lsr_submit as lsr_view_submit
 from esp.datatree.models         import *
 from esp.web.util                import render_to_response
 from django                      import forms
@@ -52,8 +53,9 @@ class LotteryStudentRegModule(ProgramModuleObj):
     @classmethod
     def module_properties(cls):
         return {
-            "link_title": "Lottery Student Registration",
-            "module_type": "manage",
+            "link_title": "Class Registration Lottery",
+            "admin_title": "Lottery Student Registration",
+            "module_type": "learn",
             "seq": 7
             }
     
@@ -64,9 +66,9 @@ class LotteryStudentRegModule(ProgramModuleObj):
         return context """
 
     @main_call
-    @needs_admin
-
-    def lottery_student_reg(self, request, tl, one, two, module, extra, prog):
+    @needs_student
+    @meets_deadline('/Classes/Lottery')
+    def lotterystudentreg(self, request, tl, one, two, module, extra, prog):
         """
         Serve the student reg page.
 
@@ -74,8 +76,18 @@ class LotteryStudentRegModule(ProgramModuleObj):
         it gets all of its content from AJAX callbacks.
         """
 
-        context = {}
-        
-        return render_to_response(self.baseDir()+'lottery_student_reg.html', request, (prog, tl), context)
+        print "blooble"
+        print request.user.username
+        return lottery_student_reg(request, self.program)
+
+    @aux_call
+    @meets_deadline('/Classes/Lottery')
+    def lsr_submit(self, request, tl, one, two, module, extra, prog):
+        """
+        Currently a placeholder; someday this will get looped in
+        to the actual lottery student reg so that it gets called.
+        """
+
+        return lsr_view_submit(request, self.program)
 
 
