@@ -83,7 +83,7 @@ def lottery_student_reg(request, program = None):
 
 #@transaction.commit_manually
 @login_required
-def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spark/2010")):
+def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Splash/2010")):
 
     # First check whether the user is actually a student.
     if not request.user.isStudent():
