@@ -65,7 +65,7 @@ import operator
 import simplejson as json
 
 @login_required
-def lottery_student_reg(request):
+def lottery_student_reg(request, program = None):
     """
     Serve the student reg page.
 
