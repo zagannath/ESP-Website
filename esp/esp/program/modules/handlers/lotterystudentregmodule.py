@@ -31,7 +31,7 @@ Email: web@esp.mit.edu
 from esp.program.modules.base    import ProgramModuleObj, needs_admin, main_call, aux_call, meets_deadline, needs_student
 from esp.program.modules         import module_ext
 from esp.program.models          import Program, ClassSubject, ClassSection, ClassCategories
-from esp.program.views           import lottery_student_reg, lsr_submit
+from esp.program.views           import lottery_student_reg, lsr_submit as lsr_view_submit
 from esp.datatree.models         import *
 from esp.web.util                import render_to_response
 from django                      import forms
@@ -82,12 +82,12 @@ class LotteryStudentRegModule(ProgramModuleObj):
 
     @aux_call
     @meets_deadline('/Classes/Lottery')
-    def lsrsubmit(self, request, tl, one, two, module, extra, prog):
+    def lsr_submit(self, request, tl, one, two, module, extra, prog):
         """
         Currently a placeholder; someday this will get looped in
         to the actual lottery student reg so that it gets called.
         """
 
-        return lsr_submit(request, self.program)
+        return lsr_view_submit(request, self.program)
 
 
