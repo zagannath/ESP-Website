@@ -209,11 +209,11 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			               {
 					   xtype: 'radio',
 					   id: flag_id,
-					   name: flag_id,
+					   name: flag_id
 				       }, 
 			               { 
 					   xtype: 'displayfield',
-					   value: "I would not like to flag a class for this timeblock.", 
+					   value: "I would not like to flag a class for this timeblock." 
 				       }
 				     ]
 				});
@@ -297,7 +297,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	     flagged_classes.push({
 		     xtype: 'button',
 		     text: 'Show me my priority classes!',
-		     handler: this.promptCheck
+		     handler: this.promptCheck,
 	     });
 
 	     //adds above to a form
