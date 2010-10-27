@@ -49,7 +49,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	var config = {
 	    id: 'sri',
 	    width: 800,
-	    height: 450,
+	    height: 700,
 	    //autoScroll: true,
 	    deferredRender: true,
 	    forceLayout: true,
@@ -64,7 +64,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		    items: [
 	                {
 			    xtype: 'displayfield',
-			    height: 450,
+			    height: 700,
 			    value: this.reg_instructions,
 			    preventScrollbars: true
 			}
