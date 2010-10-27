@@ -319,7 +319,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		    Ext.Msg.show({
 			    title: 'Wait!',
 			    msg: "You haven't filled out preferences for every time slot.",
-			    buttons: {ok:"That's fine.  I won't be attending splash then.", cancel:"No, let me go back and fill out the parts I missed!"},
+			    buttons: {ok:"That's fine.  I won't be at Splash for those time slots.", cancel:"No, let me go back and fill out the parts I missed!"},
 			    fn: function(button){
 				if(button == 'ok') {
 				    for(j = 0; j < num_tabs; j++) { Ext.getCmp('sri').setActiveTab(i);} 
