@@ -5,18 +5,28 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
     //names of the timeblocks in the django database.  configure per program.
     //this is necessary so they can be in order
     tab_names:  [
-		 'First class period: Sat 9:05 - 9:55 AM',
-		 'Second class period: 10:05 - 10:55 AM',
-		 'Third class period: 11:05 - 11:55 AM',
-		 'Fourth class period: 12:05 - 12:55 PM\r\n\r\nLunch A will run during this hour.',
-		 'Fifth class period: 1:05 - 1:55 PM\r\n\r\nLunch B will run during this hour.',
-		 'Sixth class period: 2:05 - 2:55',
-		 'Seventh class period: 3:05 - 3:55 PM',
-		 'Eighth class period: 4:05 - 4:55 PM',
-		 'Ninth class period: 5:05 - 5:55 PM',
-		 'Tenth class period: 7:05 - 7:55 PM',
-		 'Eleventh class period: 8:05 - 8:55 PM',
-		 'Twelfth class period: 9:05 - 9:55 PM'
+		     'Sat 9:05 - 9:55 AM', 
+		     'Sat 10:05 - 10:55 AM', 
+		     'Sat 11:05 - 11:55 AM', 
+		     'Sat 12:05 - 12:55 PM (lunch)', 
+		     'Sat 1:05 - 1:55 PM (lunch)', 
+		     'Sat 2:05 - 2:55 PM', 
+		     'Sat 3:05 - 3:55 PM', 
+		     'Sat 4:05 - 4:55 PM', 
+		     'Sat 5:05 - 5:55 PM', 
+		     'Sat 7:05 - 7:55 PM', 
+		     'Sat 8:05 - 8:55 PM', 
+		     'Sat 9:05 - 9:55 PM',
+		     'Sun 9:05 - 9:55 AM', 
+		     'Sun 10:05 - 10:55 SM', 
+		     'Sun 11:05 - 11:55 AM', 
+		     'Sun 12:05 - 12:55 PM (lunch)', 
+		     'Sun 1:05 - 1:55 PM (lunch)', 
+		     'Sun 2:05 - 2:55 PM', 
+		     'Sun 3:05 - 3:55 PM', 
+		     'Sun 4:05 - 4:55 PM', 
+		     'Sun 5:05 - 5:55 PM', 
+		     'Sun 6:05 - 6:55 PM'
 		     ],
 
     reg_instructions: "Welcome to Splash lottery registration!<br><br>Instructions:<br><br>Each time slot during Splash has it\'s own tab on this page. For every time slot you want to attend:<br><br>1. Click the tab with the name of that timeslot.  You will see a list of classes.<br><br>2. Select one class to be your \"priority\" class using the circular button on the left. This class is the class you most want to be in during that particular time slot. You do not have to select a priority class, but it is in your best interest to do so, since you have a higher chance of getting into your priority class. We do not guarantee placement into priority classes; we merely give them preferential status in the lottery process, and we expect students to get about 1/3 of their priority classes.<br><br>3. Select as many other classes as you want using the checkboxes. Checking a checkbox says that you are OK with attending this class. If you can’t be placed into your priority class, we will then try to place you into one of these classes. Once again we don’t guarantee placement into these checked classes. It is recommended that you check off at least 8 classes so that you will have a good chance of getting into one of them.<br><br>It is a good idea to have another window or tab in your internet browser open with the catalog and course descriptions for easy reference.<br><a href=\"http://esp.mit.edu/learn/Splash/2010/catalog\" target=\"_blank\">Click here to open the catalog in another window.</a><br><br>Note: Classes with the same name listed under different time slots are the same class, just taught at different times. You are entering the lottery for a specific instance of a class during a specific time slot.<br><br>Finally when you are done with all the timeslots you want to be at Splash, go to the \"Confirm Registration\" tab and click \"Show me my priority classes!\" You will see a list of classes you flagged.  If those are the classes you want, click \"Confirm Registration.\"  You will be notified by email when results of the lottery are posted on November 6th.<br><br>For more information on the lottery see the Student Registration FAQ",
@@ -83,7 +93,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			name: 'type'
 	            }
 		    ],
-		    proxy: new Ext.data.HttpProxy({ url: '/learn/Spark/2010/catalog_registered_classes_json' }),
+		    proxy: new Ext.data.HttpProxy({ url: '/learn/Splash/2010/catalog_registered_classes_json' }),
 		    listeners: {
 			load: {
 			    scope: this,
@@ -135,7 +145,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	        } 
 		//fields needed for class id generation
 		],
-		proxy: new Ext.data.HttpProxy({ url: '/learn/Spark/2010/catalog_json' }),
+		proxy: new Ext.data.HttpProxy({ url: '/learn/Splash/2010/catalog_json' }),
 		listeners: {
 		    load: {
 			scope: this,
