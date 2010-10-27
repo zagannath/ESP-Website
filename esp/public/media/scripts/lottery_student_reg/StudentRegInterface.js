@@ -39,15 +39,17 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 
 	var config = {
 	    id: 'sri',
-	    width: 800,
-	    height: 450,
+	    //width: 800,
+	    //height: 450,
+	    autoHeight: true,
 	    //autoScroll: true,
 	    deferredRender: true,
-	    forceLayout: true,
+	    //forceLayout: true,
 	    closeable: false,
 	    tabWidth: 20,
 	    enableTabScroll: true,
 	    activeTab: 'instructions',
+	    monitorResize: true,
 	    items: [
 	        {
 		    title: 'Instructions',
@@ -128,6 +130,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			items: [ ],
 			height: 800,
 			autoScroll: true,
+			monitorResize: true,
 			listeners: {
 			    render: function() { num_opened_tabs++; }
 			}
@@ -223,7 +226,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	     flagged_classes.push({
 		     xtype: 'displayfield',
 		     height: 80,
-		     width: '600',
+		   //width: '600',
 		     value: 'To register for the Splash lottery, click "Show me my priority classes!"<br><br>  If you like what you see, "Confirm Registration" to enter the Splash! class lottery.'
 	     });
 
@@ -311,15 +314,21 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 Ext.reg('lottery_student_reg', StudentRegInterface);
 
 
-var win = new Ext.Window({
-	closable: false,
-	items: [{ xtype: 'lottery_student_reg', 
-		  id: 'sri'
-	      }],
-	title: 'Splash! 2010 Class Lottery - ' + esp_user["cur_first_name"] + ' ' + esp_user["cur_last_name"] + ' (grade ' + esp_user["cur_grade"] + ')'
-});
-
+var win;
 Ext.onReady(function() {
+win = new Ext.Panel({
+  renderTo: Ext.get("reg_panel"),
+      //	closable: false,
+      monitorResize: true,
+      items: [{ xtype: 'lottery_student_reg', 
+	  id: 'sri'
+	  }],
+      title: 'Splash! 2010 Class Lottery - ' + esp_user["cur_first_name"] + ' ' + esp_user["cur_last_name"] + ' (grade ' + esp_user["cur_grade"] + ')',
+      autoWidth: true,
+      autoHeight: true
+      });
+
+
     win.show();
     //submitForm.getForm().submit({url: 'lsr_submit'});
 });
