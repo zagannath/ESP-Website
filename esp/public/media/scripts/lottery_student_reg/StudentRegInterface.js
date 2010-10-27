@@ -1,5 +1,4 @@
 checkbox_ids = [];
-flag_ids = [];
 
 StudentRegInterface = Ext.extend(Ext.TabPanel, {
 
@@ -72,6 +71,41 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	StudentRegInterface.superclass.initComponent.apply(this, arguments); 
     },
 
+    loadPrepopulate: function () {
+	    this.oldPreferences = new Ext.data.JsonStore({
+		    id: 'preference_store',
+		    root: '',
+		    fields: [
+	            {
+			name: 'section_id'
+	            },
+	            {
+			name: 'type'
+	            }
+		    ],
+		    proxy: new Ext.data.HttpProxy({ url: '/learn/Spark/2010/catalog_registered_classes_json' }),
+		    listeners: {
+			load: {
+			    scope: this,
+			    fn: this.prepopulateData
+			}
+		    }
+		});
+	    this.oldPreferences.load();
+	},
+    
+    prepopulateData: function (store, records, options) {
+	    for (i = 0; i<records.length; i++){
+		r = records[i];
+		if(r.data.type == 'Interested'){
+		    Ext.getCmp(r.data.section_id).setValue(true);
+		}
+		if(r.data.type == 'Priority/1'){
+		    Ext.getCmp('flag_'+r.data.section_id).setValue(true);
+		}
+	    }
+	},
+
     loadCatalog: function () {
 	    this.store =  new Ext.data.JsonStore({
 		id: 'store',
@@ -115,6 +149,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	    //make a tab for each class period
 	    //num_tabs and tab_names need to be modified for a particular program
 	tabs = [];
+	flag_added = [];
 
 	//makes tabs with id = short_description of timeblock
 	for(i = 0; i < num_tabs; i++)
@@ -125,7 +160,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 			xtype: 'form',
 			id: this.tab_names[i],
 			title: this.tab_names[i],
-			items: [ ],
+			items: [],
 			height: 800,
 			autoScroll: true,
 			listeners: {
@@ -151,8 +186,29 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		    if(r.data.get_sections[j].get_meeting_times.length >0)
 		    {
 			timeblock = r.data.get_sections[j].get_meeting_times[0];
-		
-			flag_id = 'flag_'+timeblock.id
+			flag_id = 'flag_'+timeblock.id;
+
+			if(flag_added[timeblock.id] != true){
+			    tabs[timeblock.short_description].items.push({
+			            xtype: 'fieldset',
+				    layout: 'column',
+				    id: timeblock.short_description+'no_class',
+				    name: timeblock.short_description+'no_class',
+				    items: 
+				    [
+			               {
+					   xtype: 'radio',
+					   id: flag_id,
+					   name: flag_id,
+				       }, 
+			               { 
+					   xtype: 'displayfield',
+					   value: "I would not like to flag a class for this timeblock.", 
+				       }
+				     ]
+				});
+			    flag_added[timeblock.id] = true;
+			}
 
 			//puts id of checkbox in the master list
 			checkbox_id = r.data.get_sections[j].id;
@@ -241,6 +297,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		     height: 200,
 		     items: flagged_classes
 		     });
+	Ext.getCmp('sri').loadPrepopulate();
      },
 
     allTabsCheck: function() {
