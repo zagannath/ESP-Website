@@ -299,9 +299,35 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		 classes[flag_ids[i]] = flag.getValue();
 		 }*/
 
+        var handle_submit_response = function (data) {
+            //  console.log("Got response: " + JSON.stringify(data));
+            response = JSON.parse(data["responseText"]);
+            if (response.length == 0)
+            {
+                console.log("Registration successful.");
+                Ext.Msg.show({
+                    title:  'Registration Successful',
+                    msg: 'Your preferences have been stored in the ESP database and will be used to assign classes in the lottery on Nov. 2.',
+                    buttons: {ok:'Continue', cancel:'Return to edit preferences'},
+                    fn: function(button) {
+                        if (button == 'ok') 
+                        {
+                            window.location.href = '/learn/Splash/2010/confirmreg';
+                        }
+                        if (button == 'cancel') {Ext.Msg.hide();}
+                    }
+                });
+            }
+            else
+            {
+                console.log("Registration unsuccessful: " + JSON.stringify(response));
+            }
+        };
+
 	     data = Ext.encode(classes);
 	     Ext.Ajax.request({
 		     url: 'lsr_submit',
+             success: handle_submit_response,
 		     params: {'json_data': data},
 		     method: 'POST'
 		 });
