@@ -200,20 +200,19 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		}//end if for walk in seminars
 		}//end if for grade check
 	    }
-
-	    if (grade == 7 || grade == 8){
-		for(i = 9; i<=12; i++){
-		    tabs[this.tab_names[i]].add({
-			    xtype: 'displayField',
-			    value: 'There are no middle school classes during this block.'
-			})
-		}
-	    }
 	
 	    //adds tabs to tabpanel
 	    for (i = 0; i < num_tabs; i ++)
 	    {
+		//alert('add');
 		Ext.getCmp('sri').add(tabs[this.tab_names[i]]);
+	    }
+
+
+	    if (grade == 7 || grade == 8){
+		for(i = 9; i<=12; i++){
+		    Ext.getCmp('sri').remove(this.tab_names[i]);
+		}
 	    }
 
 	    //creates "confirm registration" tab
