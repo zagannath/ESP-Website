@@ -145,9 +145,8 @@ def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spa
             print "un-reg_priority", s_id
         for s_id in classes_flagged - already_flagged_secids:
             print "reg_priority", s_id
-            if not sections_by_id[s_id].preregister_student(request.user, prereg_verb=reg_priority.name):
-                errors.append({"text": "Unable to add flagged class", "cls_sections": [s_id], "block": None, "flagged": True})
-
+            if not sections_by_id[s_id].preregister_student(request.user, prereg_verb=reg_priority.name, overridefull=True):
+                errors.append({"text": "Unable to add flagged class", "cls_sections": [s_id], "emailcode": sections_by_id[s_id].emailcode(), "block": None, "flagged": True})
 
     already_interested_sections = request.user.getSections(program=program, verbs=[reg_interested])
     already_interested_secids = set(int(x.id) for x in already_interested_sections)
@@ -161,8 +160,8 @@ def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spa
     for s_id in (already_interested_secids - classes_interest):
         sections_by_id[s_id].unpreregister_student(request.user, prereg_verb=reg_interested.name)
     for s_id in classes_interest - already_interested_secids:
-        if not sections_by_id[s_id].preregister_student(request.user, prereg_verb=reg_interested.name):
-            errors.append({"text": "Unable to add interested class", "cls_sections": [s_id], "block": None, "flagged": False})
+        if not sections_by_id[s_id].preregister_student(request.user, prereg_verb=reg_interested.name, overridefull=True):
+            errors.append({"text": "Unable to add interested class", "cls_sections": [s_id], "emailcode": sections_by_id[s_id].emailcode(), "block": None, "flagged": False})
 
     print "errors", errors
 

@@ -369,9 +369,49 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 		 classes[flag_ids[i]] = flag.getValue();
 		 }*/
 
+        var handle_submit_response = function (data) {
+            //  console.log("Got response: " + JSON.stringify(data));
+            response = JSON.parse(data["responseText"]);
+            if (response.length == 0)
+            {
+                //  console.log("Registration successful.");
+                Ext.Msg.show({
+                    title:  'Registration Successful',
+                    msg: 'Your preferences have been stored in the ESP database and will be used to assign classes in the lottery on Nov. 2.',
+                    buttons: {ok:'Continue', cancel:'Return to edit preferences'},
+                    fn: function(button) {
+                        if (button == 'ok') 
+                        {
+                            window.location.href = '/learn/Splash/2010/confirmreg';
+                        }
+                        if (button == 'cancel') {Ext.Msg.hide();}
+                    }
+                });
+            }
+            else
+            {
+                //  console.log("Registration unsuccessful: " + JSON.stringify(response));
+                msg_list = 'Some of your preferences have been stored in the ESP database.  Others caused problems: <br />';
+                for (var i = 0; i < response.length; i++)
+                {
+                    if (response[i].emailcode)
+                        msg_list = msg_list + response[i].emailcode + ': ' + response[i].text + '<br />';
+                }
+                Ext.Msg.show({
+                    title:  'Registration Problems',
+                    msg: msg_list,
+                    buttons: {ok: 'Return to edit preferences'},
+                    fn: function(button) {
+                        Ext.Msg.hide();
+                    }
+                });
+            }
+        };
+
 	     data = Ext.encode(classes);
 	     Ext.Ajax.request({
 		     url: 'lsr_submit',
+             success: handle_submit_response,
 		     params: {'json_data': data},
 		     method: 'POST'
 		 });
