@@ -282,7 +282,8 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 
 	    if (grade == 7 || grade == 8){
 		for(i = 9; i<=11; i++){
-		    Ext.getCmp(this.tab_names[i]).hidden = true;
+		    Ext.getCmp(this.tab_names[i]).hide();
+		    Ext.getCmp('sri').hideTabStripItem(this.tab_names[i]);
 		}
 	    }
 
