@@ -106,3 +106,24 @@ class LotteryStudentRegModule(ProgramModuleObj):
         return lsr_view_submit(request, self.program)
 
 
+    @aux_call
+    @needs_student
+    @meets_deadline('/Classes')
+    def viewlotteryprefs(self, request, tl, one, two, module, extra, prog):
+        context = {}
+        context['student'] = request.user
+        context['program'] = prog
+
+        priority_flags = StudentRegistration.valid_objects().filter(user=request.user, section__parent_class__parent_program=prog, relationship__name='Priority/1')
+        context['priority'] = priority_flags
+        if priority_flags.count() == 0:
+            context['pempty'] = True
+        else: context['pempty'] = False
+
+        interested = StudentRegistration.valid_objects().filter(user=request.user, section__parent_class__parent_program=prog, relationship__name='Interested')
+        context['interested' ] = interested
+        if interested.count() == 0:
+            context['iempty'] = True
+        else: context['iempty'] = False
+
+        return render_to_response(self.baseDir()+'view_lottery_prefs.html', request, (prog, tl), context)
