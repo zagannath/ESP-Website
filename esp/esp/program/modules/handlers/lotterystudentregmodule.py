@@ -30,7 +30,7 @@ Email: web@esp.mit.edu
 """
 from esp.program.modules.base    import ProgramModuleObj, needs_admin, main_call, aux_call, meets_deadline, needs_student
 from esp.program.modules         import module_ext
-from esp.program.models          import Program, ClassSubject, ClassSection, ClassCategories
+from esp.program.models          import Program, ClassSubject, ClassSection, ClassCategories, StudentRegistration
 from esp.program.views           import lottery_student_reg, lsr_submit as lsr_view_submit
 from esp.datatree.models         import *
 from esp.web.util                import render_to_response
@@ -63,7 +63,7 @@ class LotteryStudentRegModule(ProgramModuleObj):
         return {'lotteried_students': "Students who have entered the lottery"}
 
     def isCompleted(self):
-        return bool(StudentRegistration.valid_objects().filter(section__parent_class__parent_program=program, user=self.user))
+        return bool(StudentRegistration.valid_objects().filter(section__parent_class__parent_program=self.program, user=self.user))
 
     @classmethod
     def module_properties(cls):
