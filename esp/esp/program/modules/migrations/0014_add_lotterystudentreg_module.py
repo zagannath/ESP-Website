@@ -16,7 +16,7 @@ class Migration(DataMigration):
             lsr.admin_title = "Lottery Student Registration"
             lsr.handler = "LotteryStudentRegModule"
             lsr.main_call = "lotterystudentreg"
-            lsr.aux_calls = "lsrsubmit"
+            lsr.aux_calls = "lsr_submit"
             lsr.module_type = "learn"
             lsr.seq = 7
             lsr.save()
