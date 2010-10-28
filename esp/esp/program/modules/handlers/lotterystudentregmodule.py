@@ -42,13 +42,28 @@ from esp.users.models            import User, ESPUser, UserBit, UserAvailability
 from esp.middleware              import ESPError
 from esp.resources.models        import Resource, ResourceRequest, ResourceType, ResourceAssignment
 from esp.datatree.models         import DataTree
-from datetime                    import timedelta
+from datetime                    import datetime, timedelta
 from django.utils                import simplejson
 from collections                 import defaultdict
 from esp.cache                   import cache_function
 from uuid                        import uuid4 as get_uuid
+from django.db.models.query      import Q
+
 
 class LotteryStudentRegModule(ProgramModuleObj):
+
+    def students(self, QObject = False):
+        q = Q(studentregistration__section__parent_class__parent_program=self.program, studentregistration__end_date__gte=datetime.now())
+        if QObject:
+            return {'lotteried_students': q}
+        else:
+            return {'lotteried_students': ESPUser.objects.filter(q).distinct()}
+
+    def studentDesc(self):
+        return {'lotteried_students': "Students who have entered the lottery"}
+
+    def isCompleted(self):
+        return bool(StudentRegistration.valid_objects().filter(section__parent_class__parent_program=program, user=self.user))
 
     @classmethod
     def module_properties(cls):
