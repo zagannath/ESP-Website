@@ -58,6 +58,13 @@ from esp.accounting_core.models import LineItemType, CompletedTransactionExcepti
 from esp.mailman import create_list, load_list_settings, apply_list_settings, add_list_member
 from esp.settings import SITE_INFO
 
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
+
+from pprint import pprint
+
 from collections import defaultdict
 
 import pickle
@@ -164,6 +171,11 @@ def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spl
             errors.append({"text": "Unable to add interested class", "cls_sections": [s_id], "emailcode": sections_by_id[s_id].emailcode(), "block": None, "flagged": False})
 
     print "errors", errors
+
+    if len(errors) != 0:
+        s = StringIO()
+        pprint(errors, s)
+        send_mail('Error in class reg', s.getvalue(), 'server@esp.mit.edu', ['serverlog@esp.mit.edu'], fail_silently=True)
 
     return HttpResponse(json.dumps(errors), mimetype='application/json')
 
