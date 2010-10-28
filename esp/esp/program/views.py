@@ -39,7 +39,7 @@ from esp.users.models import ESPUser, UserBit, GetNodeOrNoBits, admin_required, 
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.db.models.query import Q
-from django.db.models import Max, Min
+from django.db.models import Min
 from django.db import transaction
 from django.core.mail import mail_admins
 from django.core.cache import cache
@@ -120,7 +120,7 @@ def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spl
     
     errors = []
 
-    already_flagged_sections = request.user.getSections(program=program, verbs=[reg_priority]).annotate(first_block=Max('meeting_times__start'))
+    already_flagged_sections = request.user.getSections(program=program, verbs=[reg_priority]).annotate(first_block=Min('meeting_times__start'))
     already_flagged_secids = set(int(x.id) for x in already_flagged_sections)
     
     flag_related_sections = classes_flagged | classes_not_flagged
