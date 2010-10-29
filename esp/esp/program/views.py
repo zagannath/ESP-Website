@@ -33,7 +33,7 @@ from esp.qsd.models import QuasiStaticData
 from esp.qsd.forms import QSDMoveForm, QSDBulkMoveForm
 from esp.datatree.models import *
 from django.http import HttpResponseRedirect, Http404
-from django.core.mail import send_mail
+from django.core.mail import send_mail, mail_admins
 from esp.users.models import ESPUser, UserBit, GetNodeOrNoBits, admin_required, ZipCode
 
 from django.contrib.auth.models import User
@@ -57,6 +57,13 @@ from esp.middleware import ESPError
 from esp.accounting_core.models import LineItemType, CompletedTransactionException
 from esp.mailman import create_list, load_list_settings, apply_list_settings, add_list_member
 from esp.settings import SITE_INFO
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
+
+from pprint import pprint
 
 from collections import defaultdict
 
@@ -115,9 +122,6 @@ def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spl
                 classes_interest.add(int(secid))
                 classes_no_interest.add(int(secid))
 
-    print "classes_interest", classes_interest
-    print "classes_flagged", classes_flagged
-    
     errors = []
 
     already_flagged_sections = request.user.getSections(program=program, verbs=[reg_priority]).annotate(first_block=Min('meeting_times__start'))
@@ -133,8 +137,6 @@ def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spl
         if int(s.id) not in classes_not_flagged:
             sections_by_block[s.first_block].append(s)
 
-    print sorted(sections_by_id.keys())
-
     for val in sections_by_block.values():
         if len(val) > 1:
             errors.append({"text": "Can't flag two classes at the same time!", "cls_sections": [x.id for x in val], "block": val[0].firstBlockEvent().id, "flagged": True})
@@ -142,9 +144,7 @@ def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spl
     if len(errors) == 0:
         for s_id in (already_flagged_secids - classes_flagged):
             sections_by_id[s_id].unpreregister_student(request.user, prereg_verb=reg_priority.name)
-            print "un-reg_priority", s_id
         for s_id in classes_flagged - already_flagged_secids:
-            print "reg_priority", s_id
             if not sections_by_id[s_id].preregister_student(request.user, prereg_verb=reg_priority.name, overridefull=True):
                 errors.append({"text": "Unable to add flagged class", "cls_sections": [s_id], "emailcode": sections_by_id[s_id].emailcode(), "block": None, "flagged": True})
 
@@ -163,7 +163,10 @@ def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spl
         if not sections_by_id[s_id].preregister_student(request.user, prereg_verb=reg_interested.name, overridefull=True):
             errors.append({"text": "Unable to add interested class", "cls_sections": [s_id], "emailcode": sections_by_id[s_id].emailcode(), "block": None, "flagged": False})
 
-    print "errors", errors
+    if len(errors) != 0:
+        s = StringIO()
+        pprint(errors, s)
+        mail_admins('Error in class reg', s.getvalue(), fail_silently=True)
 
     return HttpResponse(json.dumps(errors), mimetype='application/json')
 
@@ -711,7 +714,7 @@ def statistics(request, program=None):
                 return render_to_response('program/statistics.html', request, DataTree.get_by_uri('Q/Web'), context)
         else:
             #   Form was submitted but there are problems with it
-            print form.errors
+            print "program views form errors", form.errors
             form.hide_unwanted_fields()
             context = {'form': form}
             context['field_ids'] = get_field_ids(form)
