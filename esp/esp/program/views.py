@@ -170,12 +170,10 @@ def lsr_submit(request, program = Program.objects.get(anchor__uri__contains="Spl
         if not sections_by_id[s_id].preregister_student(request.user, prereg_verb=reg_interested.name, overridefull=True):
             errors.append({"text": "Unable to add interested class", "cls_sections": [s_id], "emailcode": sections_by_id[s_id].emailcode(), "block": None, "flagged": False})
 
-    print "errors", errors
-
     if len(errors) != 0:
         s = StringIO()
         pprint(errors, s)
-        send_mail('Error in class reg', s.getvalue(), 'server@esp.mit.edu', ['serverlog@esp.mit.edu'], fail_silently=True)
+        mail_admins('Error in class reg', s.getvalue(), fail_silently=True)
 
     return HttpResponse(json.dumps(errors), mimetype='application/json')
 
