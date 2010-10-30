@@ -303,7 +303,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 	     flagged_classes.push({
 		     xtype: 'button',
 		     text: 'Show me my priority classes!',
-		     handler: this.promptCheck,
+		     handler: this.promptCheck
 	     });
 
 	     //adds above to a form
@@ -374,7 +374,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
 
         var handle_submit_response = function (data) {
             //  console.log("Got response: " + JSON.stringify(data));
-            response = JSON.parse(data["responseText"]);
+            response = Ext.decode(data["responseText"]);
             if (response.length == 0)
             {
                 //  console.log("Registration successful.");

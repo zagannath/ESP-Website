@@ -114,14 +114,26 @@ class LotteryStudentRegModule(ProgramModuleObj):
         context['student'] = request.user
         context['program'] = prog
 
+        priority_classids = set()
+        uniquified_flags = []
         priority_flags = StudentRegistration.valid_objects().filter(user=request.user, section__parent_class__parent_program=prog, relationship__name='Priority/1')
-        context['priority'] = priority_flags
+        for flag in priority_flags:
+            if flag.section.id not in priority_classids:
+                priority_classids.add(flag.section.id)
+                uniquified_flags.append(flag)
+        context['priority'] = uniquified_flags
         if priority_flags.count() == 0:
             context['pempty'] = True
         else: context['pempty'] = False
 
+        interested_classids = set()
+        uniquified_interested = []
         interested = StudentRegistration.valid_objects().filter(user=request.user, section__parent_class__parent_program=prog, relationship__name='Interested')
-        context['interested' ] = interested
+        for flag in interested:
+            if flag.section.id not in interested_classids:
+                interested_classids.add(flag.section.id)
+                uniquified_interested.append(flag)
+        context['interested' ] = uniquified_interested
         if interested.count() == 0:
             context['iempty'] = True
         else: context['iempty'] = False

@@ -21,7 +21,8 @@
 
 <script type="text/javascript">
 <!--
-dragndrop = function() {
+
+{% comment %}dragndrop = function() {
     var Dom = YAHOO.util.Dom;
     var DDM = YAHOO.util.DragDropMgr;
 
@@ -31,8 +32,8 @@ dragndrop = function() {
     DDM.mode = 0;
 };
 
-YAHOO.util.Event.addListener(window, "load", dragndrop);
-
+//YAHOO.util.Event.addListener(window, "load", dragndrop);
+{% endcomment %}
 
 
 function delete_navbar(navbar_id) {
