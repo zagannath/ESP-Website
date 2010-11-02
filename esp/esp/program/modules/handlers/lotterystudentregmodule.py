@@ -81,7 +81,6 @@ class LotteryStudentRegModule(ProgramModuleObj):
         return context """
 
     @main_call
-    @cache_control(public=True, max_age=3600)
     @needs_student
     @meets_deadline('/Classes/Lottery')
     def lotterystudentreg(self, request, tl, one, two, module, extra, prog):
