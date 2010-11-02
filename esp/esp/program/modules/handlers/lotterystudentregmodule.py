@@ -48,7 +48,7 @@ from collections                 import defaultdict
 from esp.cache                   import cache_function
 from uuid                        import uuid4 as get_uuid
 from django.db.models.query      import Q
-
+from django.views.decorators.cache import cache_control
 
 class LotteryStudentRegModule(ProgramModuleObj):
 
@@ -81,6 +81,7 @@ class LotteryStudentRegModule(ProgramModuleObj):
         return context """
 
     @main_call
+    @cache_control(public=True, max_age=3600)
     @needs_student
     @meets_deadline('/Classes/Lottery')
     def lotterystudentreg(self, request, tl, one, two, module, extra, prog):

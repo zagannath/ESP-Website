@@ -7,7 +7,13 @@
 {{ block.super }}
 <script language="javascript" src="/media/scripts/ajax_tools.js"></script>
 <!-- Include Prototype for its document.getElementsByClassName reimplementation; it's many times faster than the version below, at least on IE 6. -->
+<script language="javascript">
+var $j = $;
+</script>
 <script language="javascript" src="/media/scripts/ajaxschedulingmodule/prototype.js"></script>
+<script language="javascript">
+$ = $j;
+</script>
 
 <script language="javascript">
 <!--
@@ -120,7 +126,9 @@ Viewing classes for: {{ timeslot.friendly_name }}
 
 <script language="javascript">
 <!--
-register_fragment({id: "student_schedule_html", url: "/learn/{{ program.getUrlBase }}/ajax_schedule"});
+if (document.getElementById("student_schedule_html")) {
+   register_fragment({id: "student_schedule_html", url: "/learn/{{ program.getUrlBase }}/ajax_schedule"});
+}
 -->
 </script>
 
