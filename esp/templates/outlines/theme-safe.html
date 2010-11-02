@@ -49,7 +49,8 @@
 
 <script type="text/javascript" src="/media/scripts/jquery.js"> </script>
 <script type="text/javascript">
-$(function(){
+$j = $.noConflict();
+$j(function(){
 
 // create behavior wrapper
 var wrap = function(target, label) {
@@ -86,12 +87,12 @@ if (item.nodeType == 1) {
 var showadmin = function(){
   this.innerHTML = '-';
   this.onclick = hideadmin;
-  $('#adminbar_content').show();
+  $j('#adminbar_content').show();
 };
 var hideadmin = function(){
   this.innerHTML = '+';
   this.onclick = showadmin;
-  $('#adminbar_content').hide();
+  $j('#adminbar_content').hide();
 };
 
 document.getElementById('adminbar_toggle').onclick = hideadmin;
