@@ -108,7 +108,7 @@ class LotteryStudentRegModule(ProgramModuleObj):
 
     @aux_call
     @needs_student
-    @meets_deadline('/Classes')
+    @meets_deadline('/Classes/Lottery/View')
     def viewlotteryprefs(self, request, tl, one, two, module, extra, prog):
         context = {}
         context['student'] = request.user
