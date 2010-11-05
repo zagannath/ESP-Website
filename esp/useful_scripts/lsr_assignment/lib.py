@@ -1,7 +1,7 @@
 path_to_esp = '/esp/esp/'
 
 import sys
-sys.path += [path_to_esp]
+sys.path += [path_to_esp, path_to_esp + 'esp/']
 
 import os
 os.environ['DJANGO_SETTINGS_MODULE'] = 'esp.settings'
@@ -9,8 +9,8 @@ os.environ['DJANGO_SETTINGS_MODULE'] = 'esp.settings'
 import random
 
 from esp.cal.models import Event
-from esp.program.models import Program, ClassSection, StudentRegistration, RegistrationType
 from esp.users.models import User, ESPUser
+from esp.program.models import Program, ClassSection, StudentRegistration, RegistrationType
 
 
 ################################
