@@ -1,12 +1,15 @@
-path_to_esp = '/esp/esp/'
+path_to_esp = '/home/yuri/esproject/esp/'
 
 import sys
 sys.path += [path_to_esp]
 
+import os
+os.environ['DJANGO_SETTINGS_MODULE'] = 'esp.settings'
+
 import random
 
 from esp.cal.models import Event
-from esp.program.models import Program, ClassSubject, ClassSection, StudentRegistration, RegistrationType
+from esp.program.models import Program, ClassSection, StudentRegistration, RegistrationType
 from esp.users.models import User, ESPUser
 
 
@@ -198,14 +201,21 @@ def assign_priorities():
 
     # Handle the phase 1 sections
     for sec, priority in phase1_secs:
+        print "==== Adding priority students to " + sec.emailcode() + ": " + sec.title() + " ===="
+
         # Loop through all classes where priority flags is less than capacity.
         # Try to register each student for the class; we don't care if
         # it fails, because no one's competing for the spots.
         for reg in priority:
-            try_add(ESPUser.objects.get(id=reg['user']), sec)
+            thisuser = ESPUser.objects.get(id=reg['user'])
+            successs = try_add(thisuser, sec)
+            if success:
+                print thisuser.name() + " (" + thisuser.username + ")"
 
     # Handle the phase 2 sections
     for sec, priority in phase2_secs:
+        print "==== Adding priority students to " + sec.emailcode() + ": " + sec.title() + " ===="
+
         # We want to lottery students by ordering them in some way,
         # giving preference to the students who have so far gotten fewer
         # of their priority classes.  Once the order is established,
@@ -224,11 +234,13 @@ def assign_priorities():
         registered_count = 0
         cur_index = 0
         while (registered_count < class_cap(sec)) and (cur_index < len(users_by_priority)):
-            success = try_add(get_user(users_by_priority[cur_index]), sec)
+            thisuser = get_user(users_by_priority[cur_index])
+            success = try_add(thisuser, sec)
             cur_index += 1
 
             # If we succeeded, make sure to add one to the registered count.
             if success:
+                print thisuser.name() + " (" + thisuser.username + ")"
                 registered_count += 1
 
 
@@ -288,6 +300,8 @@ def assign_interesteds():
     # people in it (currently, ratio'd with how large they are), 
     # fill up the classes by lottery.
     for sec in sorted_secs:
+        print "==== Adding interested students to " + sec.emailcode() + ": " + sec.title() + " ===="
+
         # Same procedure as in the case of priority registrations.
         interesteds = StudentRegistration.valid_objects().filter(section=sec, relationship__name=interested_type).values('user').distinct()
         users_by_val = sorted([bundle_interested(ESPUser.objects.get(id=r['user'])) for r in interesteds], key=get_val, reverse=True)
@@ -297,5 +311,10 @@ def assign_interesteds():
         # change to have logic similar to the priority registration.
         cur_index = 0
         while not (sec.isFull()):
-            try_add(get_user(users_by_val[cur_index)), sec)
+            thisuser = get_user(users_by_val[cur_index])
+            success = try_add(thisuser, sec)
             cur_index += 1
+
+            # If we succeeded, make sure to add one to the registered count.
+            if success:
+                print thisuser.name() + " (" + thisuser.username + ")"
