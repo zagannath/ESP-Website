@@ -180,7 +180,7 @@ def assign_priorities():
     marked it priority), and do a preference-based lottery for the
     people who have marked this class.    
     """
-    all_secs = program.sections.all()
+    all_secs = program.sections().filter(status__gt=0)
 
     # These will be lists of tuples: (sec, priority-flags)
     phase1_secs = []
@@ -208,7 +208,7 @@ def assign_priorities():
         # it fails, because no one's competing for the spots.
         for reg in priority:
             thisuser = ESPUser.objects.get(id=reg['user'])
-            successs = try_add(thisuser, sec)
+            success = try_add(thisuser, sec)
             if success:
                 print thisuser.name() + " (" + thisuser.username + ")"
 
