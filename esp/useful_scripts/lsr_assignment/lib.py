@@ -1,4 +1,4 @@
-path_to_esp = '/home/yuri/esproject/esp/'
+path_to_esp = '/esp/esp/'
 
 import sys
 sys.path += [path_to_esp]
