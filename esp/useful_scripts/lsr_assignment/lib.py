@@ -201,7 +201,7 @@ def assign_priorities():
 
     # Handle the phase 1 sections
     for sec, priority in phase1_secs:
-        print "==== Adding priority students to " + sec.emailcode() + ": " + sec.title() + " ===="
+        print "== Adding priority students to " + sec.emailcode() + ": " + sec.title() + " =="
 
         # Loop through all classes where priority flags is less than capacity.
         # Try to register each student for the class; we don't care if
@@ -214,7 +214,7 @@ def assign_priorities():
 
     # Handle the phase 2 sections
     for sec, priority in phase2_secs:
-        print "==== Adding priority students to " + sec.emailcode() + ": " + sec.title() + " ===="
+        print "== Adding priority students to " + sec.emailcode() + ": " + sec.title() + " =="
 
         # We want to lottery students by ordering them in some way,
         # giving preference to the students who have so far gotten fewer
@@ -264,7 +264,7 @@ def screwed_sweep_p1_printout():
 
     users = sorted(program.students()['lotteried_students'], key=pclasses_pct)
     for user in users:
-        print user.name(), ":", pclasses_pct(user), "(" + classes_cnt(user)[0] + "/" + classes_cnt(user)[1] + ")"    
+        print user.name(), ":", pclasses_pct(user), "(" + str(classes_cnt(user)[0]) + "/" + str(classes_cnt(user)[1]) + ")"    
         
 
 def assign_interesteds():
@@ -291,7 +291,7 @@ def assign_interesteds():
 
     # Filter out all the classes that we filled up in the priority reg stage
     # so we don't worry about them anymore in this stage.
-    nonempty_secs = [sec for sec in program.sections() if not sec.isFull()]
+    nonempty_secs = [sec for sec in program.sections().filter(status__gt=0) if not sec.isFull()]
 
     # Now sort the classes by fewest number of people interested.
     sorted_secs = sorted(nonempty_secs, interested_count)
@@ -300,7 +300,7 @@ def assign_interesteds():
     # people in it (currently, ratio'd with how large they are), 
     # fill up the classes by lottery.
     for sec in sorted_secs:
-        print "==== Adding interested students to " + sec.emailcode() + ": " + sec.title() + " ===="
+        print "== Adding interested students to " + sec.emailcode() + ": " + sec.title() + " =="
 
         # Same procedure as in the case of priority registrations.
         interesteds = StudentRegistration.valid_objects().filter(section=sec, relationship__name=interested_type).values('user').distinct()
