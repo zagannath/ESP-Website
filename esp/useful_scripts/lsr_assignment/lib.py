@@ -207,7 +207,8 @@ def assign_priorities():
     # Randomize the order in which we go through the priority classes, because
     # the algorithm doesn't specify, and we don't want to leave them in
     # database order.
-    all_secs = random.shuffle(list(program.sections().filter(status__gt=0)))
+    all_secs = list(program.sections().filter(status__gt=0))
+    random.shuffle(all_secs)
 
     # These will be lists of tuples: (sec, priority-flags)
     phase1_secs = []
