@@ -70,10 +70,7 @@ def capacity_star(cls):
 ####################
 
 def lunch_free(user, lunchtimes):
-    registrations = StudentRegistration.valid_objects().filter(user=user, section__parent_class__parent_program=program, relationship__name=enrolled_type).values('section').distinct()
-    secids = [reg['section'] for reg in registrations]
-
-    return ClassSection.objects.filter(id__in=secids, meeting_times__in=lunchtimes).count() == 0
+    return ESPUser(user).getEnrolledSectionsFromProgram(program).filter(meeting_times__in=lunchtimes).count() == 0
 
 # TODO(rye): Add a mechanism for lunch, with some helper functions to ensure lunch.
 def try_add(user, cls):
@@ -117,8 +114,8 @@ def priority_lottery_val(user):
     are priority classes.  This is true given when this will be used,
     but makes it not a general function.
     """
-    priority_ids = [r['section'] for r in StudentRegistration.valid_objects().filter(user=user, section__parent_class__parent_program=program, relationship__name=priority_type).values('section').distinct()]
-    reged_classes_count = StudentRegistration.valid_objects().filter(user=user, section__id__in=priority_ids, relationship__name=enrolled_type).values('section').distinct().count()
+    priority_ids = StudentRegistration.valid_objects().filter(user=user, section__parent_class__parent_program=program, relationship__name=priority_type).values_list('section', flat=True).distinct()
+    reged_classes_count = StudentRegistration.valid_objects().filter(user=user, section__id__in=priority_ids, relationship__name=enrolled_type).values_list('section', flat=True).distinct().count()
 
     # Randomly generate a number in the range specified above.
     retval = random.random()
@@ -137,8 +134,8 @@ def interested_lottery_val(user):
     into, and how many of their interested classes the user got into.
     """
 
-    interested_ids = [r['section'] for r in StudentRegistration.valid_objects().filter(user=user, section__parent_class__parent_program=program, relationship__name=interested_type).values('section').distinct()]
-    interested_count = StudentRegistration.valid_objects().filter(user=user, section__id__in=interested_ids, relationship__name=enrolled_type).values('section').distinct().count()
+    interested_ids = StudentRegistration.valid_objects().filter(user=user, section__parent_class__parent_program=program, relationship__name=interested_type).values_list('section', flat=True).distinct()
+    interested_count = StudentRegistration.valid_objects().filter(user=user, section__id__in=interested_ids, relationship__name=enrolled_type).values_list('section', flat=True).distinct().count()
 
     # The randomizing factor already exists in the returned value of this
     # function, so what we do here is just multiply it by more factors.
@@ -295,7 +292,7 @@ def screwed_sweep_p1_printout():
 
     users = sorted(program.students()['lotteried_students'], key=pclasses_pct)
     for user in users:
-        print user.name(), ":", pclasses_pct(user), "(" + str(classes_cnt(user)[0]) + "/" + str(classes_cnt(user)[1]) + ")"    
+        print user.name(), ":", pclasses_pct(user), "(" + str(classes_cnt(user)[0]) + "/" + str(classes_cnt(user)[1]) + ")"
         
 
 def assign_interesteds():
@@ -335,7 +332,8 @@ def assign_interesteds():
 
         # Same procedure as in the case of priority registrations.
         interesteds = StudentRegistration.valid_objects().filter(section=sec, relationship__name=interested_type).values_list('user', flat=True).distinct()
-        users_by_val = sorted([bundle_interested(ESPUser.objects.get(id=r)) for r in interesteds], key=get_val, reverse=True)
+        myusers = ESPUser.objects.filter(id__in=interesteds)
+        users_by_val = sorted([bundle_interested(u) for u in myusers], key=get_val, reverse=True)
 
         # It's easier to, instad of counting, just fill the class till it's
         # full.  If we change to actually using capacity*, this will need to
