@@ -292,7 +292,7 @@ def screwed_sweep_p1_printout():
 
     users = sorted(program.students()['lotteried_students'], key=pclasses_pct)
     for user in users:
-        print user.name(), ":", pclasses_pct(user), "(" + str(classes_cnt(user)[0]) + "/" + str(classes_cnt(user)[1]) + ")"
+        print user.name() + " (" + user.username + ")" + ":", pclasses_pct(user), "(" + str(classes_cnt(user)[0]) + "/" + str(classes_cnt(user)[1]) + ")"
         
 
 def assign_interesteds():
