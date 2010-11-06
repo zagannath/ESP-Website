@@ -24,13 +24,15 @@ enrolled_type = 'Enrolled'
 
 # Numerical parameters for assigning students a score for getting into classes.
 onestar = 1
-twostar = 1.1
-twostarstar = 1.05
+twostar = 1.2
+twostarstar = 1.1
 
 # Range for random number generation.  A random number will be generated
 # in this range, and multiplied by the value, for some randomness.
-rangemin = 0.7
-rangesize = 0.6
+# Not using this, as I don't think it's fair enough.  We're just
+# multiplying by a float in (0, 1).
+rangemin = 0
+rangesize = 1
 
 # The program used for these scripts.
 # ID 65 = Splash 2010.
@@ -119,7 +121,7 @@ def priority_lottery_val(user):
     reged_classes_count = StudentRegistration.valid_objects().filter(user=user, section__id__in=priority_ids, relationship__name=enrolled_type).values('section').distinct().count()
 
     # Randomly generate a number in the range specified above.
-    retval = (random.random() * rangesize) + rangemin
+    retval = random.random()
 
     if reged_classes_count > 0:
         retval *= onestar / (reged_classes_count * twostar)
@@ -311,7 +313,7 @@ def assign_interesteds():
     # something they're interested in.  Used for sorting the sections.
     # Actually, this key is changing to a division.
     def interested_count(sec):
-        count = StudentRegistration.valid_objects.filter(section=sec, relationship__name=interested_type).values_list('user', flat=True).distinct().count()
+        count = StudentRegistration.valid_objects().filter(section=sec, relationship__name=interested_type).values_list('user', flat=True).distinct().count()
         return count/(1.0*class_cap(sec))
 
     # Filter out all the classes that we filled up in the priority reg stage
@@ -319,7 +321,7 @@ def assign_interesteds():
     nonempty_secs = [sec for sec in program.sections().filter(status__gt=0) if not sec.isFull()]
 
     # Now sort the classes by fewest number of people interested.
-    sorted_secs = sorted(nonempty_secs, interested_count)
+    sorted_secs = sorted(nonempty_secs, key=interested_count)
 
     # In the order of the classes that have the fewest interested
     # people in it (currently, ratio'd with how large they are), 
@@ -335,7 +337,7 @@ def assign_interesteds():
         # full.  If we change to actually using capacity*, this will need to
         # change to have logic similar to the priority registration.
         cur_index = 0
-        while not (sec.isFull()):
+        while not (sec.isFull() or cur_index >= len(users_by_val)):
             thisuser = get_user(users_by_val[cur_index])
             success = try_add(thisuser, sec)
             cur_index += 1
