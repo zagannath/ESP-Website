@@ -50,9 +50,11 @@ def class_cap(cls):
     """
     Determine the class capacity of a class as calculated by whatever
     it is we're using to calculate it for these classes.
+    We're just using the class's full capacity right now, and the
+    capacity is calculated in the _get_capacity function, so all is well.
     cls -- the class section in question.
     """
-    return cls.parent_class.class_size_optimal
+    return cls.capacity
 
 def capacity_star(cls):
     """ 
@@ -159,6 +161,26 @@ def get_val(bundle):
     return bundle[1]
 
 
+# Function to find all issues with currently existing registrations.
+def print_issues():
+    # Find students with conflicting classes.
+    print "ERROR SWEEP: Looking for students with conflicting classes or multiple classes over lunch..."
+    for student in program.students()['lotteried_students']:
+        secs = ESPUser(student).getEnrolledSectionsFromProgram(program).distinct()
+        my_tsdict = {}
+        for sec in secs:
+            for mt in sec.meeting_times.all():
+                if int(mt.id) in my_tsdict:
+                    print ESPUser(student).name() + " (" + student.username + "), conflict: " + sec.emailcode()
+                else:
+                    my_tsdict[int(mt.id)] = sec
+
+        if secs.filter(meeting_times__in=satlunch).count() > 1:
+            print ESPUser(student).name() + " (" + student.username + "), Saturday lunch conflict"
+        if secs.filter(meeting_times__in=sunlunch).count() > 1:
+            print ESPUser(student).name() + " (" + student.username + "), Sunday lunch conflict"
+
+
 ################################
 # Lottery Assignment Functions #
 ################################
@@ -193,7 +215,7 @@ def assign_priorities():
         # this now.
         # Because there are duplicate registrations for each, just get the
         # distinct users who marked this class as priority.
-        priority_regs = StudentRegistration.valid_objects().filter(section=sec, relationship__name=priority_type).values('user').distinct()
+        priority_regs = StudentRegistration.valid_objects().filter(section=sec, relationship__name=priority_type).values_list('user', flat=True).distinct()
         if (priority_regs.count() > class_cap(sec)):
             phase2_secs.append((sec, priority_regs))
         else: 
@@ -207,7 +229,7 @@ def assign_priorities():
         # Try to register each student for the class; we don't care if
         # it fails, because no one's competing for the spots.
         for reg in priority:
-            thisuser = ESPUser.objects.get(id=reg['user'])
+            thisuser = ESPUser.objects.get(id=reg)
             success = try_add(thisuser, sec)
             if success:
                 print thisuser.name() + " (" + thisuser.username + ")"
@@ -224,7 +246,7 @@ def assign_priorities():
         #
         # Students are likely to have a higher priority reg value when they
         # have fewer classes so far, so sort the students by decreasing reg value.
-        users_by_priority = sorted([bundle_priority(ESPUser.objects.get(id=r['user'])) for r in priority], key=get_val, reverse=True)
+        users_by_priority = sorted([bundle_priority(ESPUser.objects.get(id=r)) for r in priority], key=get_val, reverse=True)
 
         # Now register the students in the order they got sorted.
         # Note: this could alternatively be done by trying to add each user in
@@ -242,6 +264,9 @@ def assign_priorities():
             if success:
                 print thisuser.name() + " (" + thisuser.username + ")"
                 registered_count += 1
+
+    # Now print out if there were any issues.  This step apparently takes a while.
+    print_issues()
 
 
 def screwed_sweep_p1_printout():
@@ -286,7 +311,7 @@ def assign_interesteds():
     # something they're interested in.  Used for sorting the sections.
     # Actually, this key is changing to a division.
     def interested_count(sec):
-        count = StudentRegistration.valid_objects.filter(section=sec, relationship__name=interested_type).values('user').distinct().count()
+        count = StudentRegistration.valid_objects.filter(section=sec, relationship__name=interested_type).values_list('user', flat=True).distinct().count()
         return count/(1.0*class_cap(sec))
 
     # Filter out all the classes that we filled up in the priority reg stage
@@ -303,8 +328,8 @@ def assign_interesteds():
         print "== Adding interested students to " + sec.emailcode() + ": " + sec.title() + " =="
 
         # Same procedure as in the case of priority registrations.
-        interesteds = StudentRegistration.valid_objects().filter(section=sec, relationship__name=interested_type).values('user').distinct()
-        users_by_val = sorted([bundle_interested(ESPUser.objects.get(id=r['user'])) for r in interesteds], key=get_val, reverse=True)
+        interesteds = StudentRegistration.valid_objects().filter(section=sec, relationship__name=interested_type).values_list('user', flat=True).distinct()
+        users_by_val = sorted([bundle_interested(ESPUser.objects.get(id=r)) for r in interesteds], key=get_val, reverse=True)
 
         # It's easier to, instad of counting, just fill the class till it's
         # full.  If we change to actually using capacity*, this will need to
@@ -318,3 +343,6 @@ def assign_interesteds():
             # If we succeeded, make sure to add one to the registered count.
             if success:
                 print thisuser.name() + " (" + thisuser.username + ")"
+
+    # Now print out if there were any issues.  This step apparently takes a while.
+    print_issues()
