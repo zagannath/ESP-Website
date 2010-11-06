@@ -39,8 +39,8 @@ rangesize = 1
 program = Program.objects.get(id=65)
 
 # Lunch hours, for checking whether a student has lunch free.
-satlunch = Event.objects.filter(id__in=[495,496])
-sunlunch = Event.objects.filter(id__in=[497,498])
+satlunch = tuple([int(x.id) for x in Event.objects.filter(id__in=[495,496])])
+sunlunch = tuple([int(x.id) for x in Event.objects.filter(id__in=[497,498])])
 
 # The wiggle room factor for the class capacity, to leave a space for
 # those classes that didn't fill up from priority.  Set to 10% for now.
@@ -70,7 +70,7 @@ def capacity_star(cls):
 ####################
 
 def lunch_free(user, lunchtimes):
-    return ESPUser(user).getEnrolledSectionsFromProgram(program).filter(meeting_times__in=lunchtimes).count() == 0
+    return not bool(ESPUser(user).getEnrolledSectionsFromProgram(program).filter(meeting_times__in=lunchtimes))
 
 # TODO(rye): Add a mechanism for lunch, with some helper functions to ensure lunch.
 def try_add(user, cls):
@@ -83,10 +83,16 @@ def try_add(user, cls):
     """
     # First, check if this class runs over lunch, and if so, make sure
     # the student actually has lunch free.
-    if cls.meeting_times.filter(id__in=satlunch).count() > 0:
+    
+    if not hasattr(cls, "_satlunch"):
+        cls._satlunch = bool(cls.meeting_times.filter(id__in=satlunch))
+    if cls._satlunch:
         if not lunch_free(user, satlunch):
             return False
-    if cls.meeting_times.filter(id__in=sunlunch).count() > 0:
+
+    if not hasattr(cls, "_sunlunch"):
+        cls._sunlunch = bool(cls.meeting_times.filter(id__in=sunlunch))
+    if cls._sunlunch:
         if not lunch_free(user, sunlunch):
             return False
 
@@ -218,7 +224,7 @@ def assign_priorities():
         # this now.
         # Because there are duplicate registrations for each, just get the
         # distinct users who marked this class as priority.
-        priority_regs = StudentRegistration.valid_objects().filter(section=sec, relationship__name=priority_type).values_list('user', flat=True).distinct()
+        priority_regs = ESPUser.objects.filter(id__in=StudentRegistration.valid_objects().filter(section=sec, relationship__name=priority_type).values_list('user', flat=True)).distinct()
         if (priority_regs.count() > class_cap(sec)):
             phase2_secs.append((sec, priority_regs))
         else: 
@@ -231,8 +237,7 @@ def assign_priorities():
         # Loop through all classes where priority flags is less than capacity.
         # Try to register each student for the class; we don't care if
         # it fails, because no one's competing for the spots.
-        for reg in priority:
-            thisuser = ESPUser.objects.get(id=reg)
+        for thisuser in priority:
             success = try_add(thisuser, sec)
             if success:
                 print thisuser.name() + " (" + thisuser.username + ")"
@@ -249,7 +254,7 @@ def assign_priorities():
         #
         # Students are likely to have a higher priority reg value when they
         # have fewer classes so far, so sort the students by decreasing reg value.
-        users_by_priority = sorted([bundle_priority(ESPUser.objects.get(id=r)) for r in priority], key=get_val, reverse=True)
+        users_by_priority = sorted([bundle_priority(r) for r in priority], key=get_val, reverse=True)
 
         # Now register the students in the order they got sorted.
         # Note: this could alternatively be done by trying to add each user in
