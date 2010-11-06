@@ -444,7 +444,11 @@ class ClassSection(models.Model):
 
         #hacky fix for classes with no max size
         if ans == None or ans == 0:
-            if self.parent_class.class_size_optimal and len(rooms) != 0:
+            # New class size capacity condition set for Splash 2010.  In code
+            # because it seems like a fairly reasonable metric.
+            if self.parent_class.allowable_class_size_ranges.all() and len(rooms) != 0:
+                ans = min(max(self.parent_class.allowable_class_size_ranges.order_by('-range_max').values_list('range_max', flat=True)[0], self.parent_class.class_size_optimal), self._get_room_capacity(rooms))
+            elif self.parent_class.class_size_optimal and len(rooms) != 0:
                 ans = min(self.parent_class.class_size_optimal, self._get_room_capacity(rooms))
             elif self.parent_class.class_size_optimal:
                 ans = self.parent_class.class_size_optimal
@@ -877,13 +881,15 @@ class ClassSection(models.Model):
         # Test any scheduling constraints
         relevantConstraints = self.parent_program.getScheduleConstraints()
         #   relevantConstraints = ScheduleConstraint.objects.none()
-        # Set up a ScheduleMap; fake-insert this class into it
-        sm = ScheduleMap(user, self.parent_program)
-        sm.add_section(self)
-        
-        for exp in relevantConstraints:
-            if not exp.evaluate(sm):
-                return "You're violating a scheduling constraint.  Adding <i>%s</i> to your schedule requires that you: %s." % (self.title(), exp.requirement.label)
+
+        if relevantConstraints:
+            # Set up a ScheduleMap; fake-insert this class into it
+            sm = ScheduleMap(user, self.parent_program)
+            sm.add_section(self)
+
+            for exp in relevantConstraints:
+                if not exp.evaluate(sm):
+                    return "You're violating a scheduling constraint.  Adding <i>%s</i> to your schedule requires that you: %s." % (self.title(), exp.requirement.label)
         
         scrmi = self.parent_program.getModuleExtension('StudentClassRegModuleInfo')
         if scrmi.use_priority:
@@ -897,12 +903,10 @@ class ClassSection(models.Model):
         #    verbs += ['/Applied']
         
         # check to see if there's a conflict:
-        for sec in user.getSections(self.parent_program, verbs=verbs):
-            if sec.parent_class == self.parent_class:
-                return 'You are already signed up for a section of this class!'
-            for time in sec.meeting_times.all():
-                if len(self.meeting_times.filter(id = time.id)) > 0:
-                    return 'This section conflicts with your schedule--check out the other sections!'
+        if user.getSections(self.parent_program, verbs=verbs).filter(parent_class=self.parent_class):
+            return 'You are already signed up for a section of this class!'
+        if user.getSections(self.parent_program, verbs=verbs).filter(meeting_times__in=self.get_meeting_times()):
+            return 'This section conflicts with your schedule--check out the other sections!'
                     
         # check to see if registration has been closed for this section
         if not self.isRegOpen():
@@ -1181,9 +1185,9 @@ class ClassSection(models.Model):
             #    Then, create the registration for this class.
             now = datetime.datetime.now()
             
-            qs = self.registrations.filter(id=user.id, studentregistration__start_date__lte=now, studentregistration__end_date__gte=now)
+            rt = RegistrationType.get_cached(name=prereg_verb, category='student')
+            qs = self.registrations.filter(id=user.id, studentregistration__start_date__lte=now, studentregistration__end_date__gte=now, studentregistration__relationship=rt)
             if fast_force_create or not qs.exists():
-                rt = RegistrationType.get_cached(name=prereg_verb, category='student')
                 sr = StudentRegistration(user=user, section=self, relationship=rt)
                 sr.save()
                 #   print 'Created %s' % sr
@@ -1202,14 +1206,15 @@ class ClassSection(models.Model):
             else:
                 #   print 'Already in class: %s' % qs
                 pass
-                
-            #   Clear completion bit on the student's application if the class has app questions.
-            app = ESPUser(user).getApplication(self.parent_program, create=False)
-            if app:
-                app.set_questions()
-                if app.questions.count() > 0:
-                    app.done = False
-                    app.save()
+
+            if self.parent_program.isUsingStudentApps():
+                #   Clear completion bit on the student's application if the class has app questions.
+                app = ESPUser(user).getApplication(self.parent_program, create=False)
+                if app:
+                    app.set_questions()
+                    if app.questions.count() > 0:
+                        app.done = False
+                        app.save()
 
             #   Add the student to the class mailing lists, if they exist
             list_names = ["%s-%s" % (self.emailcode(), "students"), "%s-%s" % (self.parent_class.emailcode(), "students")]

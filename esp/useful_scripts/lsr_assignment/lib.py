@@ -1,13 +1,16 @@
 path_to_esp = '/esp/esp/'
 
 import sys
-sys.path += [path_to_esp]
+sys.path += [path_to_esp, path_to_esp + 'esp/']
+
+import os
+os.environ['DJANGO_SETTINGS_MODULE'] = 'esp.settings'
 
 import random
 
 from esp.cal.models import Event
-from esp.program.models import Program, ClassSubject, ClassSection, StudentRegistration, RegistrationType
 from esp.users.models import User, ESPUser
+from esp.program.models import Program, ClassSection, StudentRegistration, RegistrationType
 
 
 ################################
@@ -21,21 +24,23 @@ enrolled_type = 'Enrolled'
 
 # Numerical parameters for assigning students a score for getting into classes.
 onestar = 1
-twostar = 1.1
-twostarstar = 1.05
+twostar = 1.2
+twostarstar = 1.1
 
 # Range for random number generation.  A random number will be generated
 # in this range, and multiplied by the value, for some randomness.
-rangemin = 0.7
-rangesize = 0.6
+# Not using this, as I don't think it's fair enough.  We're just
+# multiplying by a float in (0, 1).
+rangemin = 0
+rangesize = 1
 
 # The program used for these scripts.
 # ID 65 = Splash 2010.
 program = Program.objects.get(id=65)
 
 # Lunch hours, for checking whether a student has lunch free.
-satlunch = Event.objects.filter(id__in=[495,496])
-sunlunch = Event.objects.filter(id__in=[497,498])
+satlunch = tuple([int(x.id) for x in Event.objects.filter(id__in=[495,496])])
+sunlunch = tuple([int(x.id) for x in Event.objects.filter(id__in=[497,498])])
 
 # The wiggle room factor for the class capacity, to leave a space for
 # those classes that didn't fill up from priority.  Set to 10% for now.
@@ -47,9 +52,11 @@ def class_cap(cls):
     """
     Determine the class capacity of a class as calculated by whatever
     it is we're using to calculate it for these classes.
+    We're just using the class's full capacity right now, and the
+    capacity is calculated in the _get_capacity function, so all is well.
     cls -- the class section in question.
     """
-    return cls.parent_class.class_size_optimal
+    return cls.capacity
 
 def capacity_star(cls):
     """ 
@@ -63,10 +70,7 @@ def capacity_star(cls):
 ####################
 
 def lunch_free(user, lunchtimes):
-    registrations = StudentRegistration.valid_objects().filter(user=user, section__parent_class__parent_program=program, relationship__name=enrolled_type).values('section').distinct()
-    secids = [reg['section'] for reg in registrations]
-
-    return ClassSection.objects.filter(id__in=secids, meeting_times__in=lunchtimes).count() == 0
+    return not bool(ESPUser(user).getEnrolledSectionsFromProgram(program).filter(meeting_times__in=lunchtimes))
 
 # TODO(rye): Add a mechanism for lunch, with some helper functions to ensure lunch.
 def try_add(user, cls):
@@ -79,10 +83,16 @@ def try_add(user, cls):
     """
     # First, check if this class runs over lunch, and if so, make sure
     # the student actually has lunch free.
-    if cls.meeting_times.filter(id__in=satlunch).count() > 0:
+    
+    if not hasattr(cls, "_satlunch"):
+        cls._satlunch = bool(cls.meeting_times.filter(id__in=satlunch))
+    if cls._satlunch:
         if not lunch_free(user, satlunch):
             return False
-    if cls.meeting_times.filter(id__in=sunlunch).count() > 0:
+
+    if not hasattr(cls, "_sunlunch"):
+        cls._sunlunch = bool(cls.meeting_times.filter(id__in=sunlunch))
+    if cls._sunlunch:
         if not lunch_free(user, sunlunch):
             return False
 
@@ -110,11 +120,11 @@ def priority_lottery_val(user):
     are priority classes.  This is true given when this will be used,
     but makes it not a general function.
     """
-    priority_ids = [r['section'] for r in StudentRegistration.valid_objects().filter(user=user, section__parent_class__parent_program=program, relationship__name=priority_type).values('section').distinct()]
-    reged_classes_count = StudentRegistration.valid_objects().filter(user=user, section__id__in=priority_ids, relationship__name=enrolled_type).values('section').distinct().count()
+    priority_ids = StudentRegistration.valid_objects().filter(user=user, section__parent_class__parent_program=program, relationship__name=priority_type).values_list('section', flat=True).distinct()
+    reged_classes_count = StudentRegistration.valid_objects().filter(user=user, section__id__in=priority_ids, relationship__name=enrolled_type).values_list('section', flat=True).distinct().count()
 
     # Randomly generate a number in the range specified above.
-    retval = (random.random() * rangesize) + rangemin
+    retval = random.random()
 
     if reged_classes_count > 0:
         retval *= onestar / (reged_classes_count * twostar)
@@ -130,8 +140,8 @@ def interested_lottery_val(user):
     into, and how many of their interested classes the user got into.
     """
 
-    interested_ids = [r['section'] for r in StudentRegistration.valid_objects().filter(user=user, section__parent_class__parent_program=program, relationship__name=interested_type).values('section').distinct()]
-    interested_count = StudentRegistration.valid_objects().filter(user=user, section__id__in=interested_ids, relationship__name=enrolled_type).values('section').distinct().count()
+    interested_ids = StudentRegistration.valid_objects().filter(user=user, section__parent_class__parent_program=program, relationship__name=interested_type).values_list('section', flat=True).distinct()
+    interested_count = StudentRegistration.valid_objects().filter(user=user, section__id__in=interested_ids, relationship__name=enrolled_type).values_list('section', flat=True).distinct().count()
 
     # The randomizing factor already exists in the returned value of this
     # function, so what we do here is just multiply it by more factors.
@@ -156,6 +166,26 @@ def get_val(bundle):
     return bundle[1]
 
 
+# Function to find all issues with currently existing registrations.
+def print_issues():
+    # Find students with conflicting classes.
+    print "ERROR SWEEP: Looking for students with conflicting classes or multiple classes over lunch..."
+    for student in program.students()['lotteried_students']:
+        secs = ESPUser(student).getEnrolledSectionsFromProgram(program).distinct()
+        my_tsdict = {}
+        for sec in secs:
+            for mt in sec.meeting_times.all():
+                if int(mt.id) in my_tsdict:
+                    print ESPUser(student).name() + " (" + student.username + "), conflict: " + sec.emailcode()
+                else:
+                    my_tsdict[int(mt.id)] = sec
+
+        if secs.filter(meeting_times__in=satlunch).count() > 1:
+            print ESPUser(student).name() + " (" + student.username + "), Saturday lunch conflict"
+        if secs.filter(meeting_times__in=sunlunch).count() > 1:
+            print ESPUser(student).name() + " (" + student.username + "), Sunday lunch conflict"
+
+
 ################################
 # Lottery Assignment Functions #
 ################################
@@ -177,7 +207,11 @@ def assign_priorities():
     marked it priority), and do a preference-based lottery for the
     people who have marked this class.    
     """
-    all_secs = program.sections.all()
+    # Randomize the order in which we go through the priority classes, because
+    # the algorithm doesn't specify, and we don't want to leave them in
+    # database order.
+    all_secs = list(program.sections().filter(status__gt=0))
+    random.shuffle(all_secs)
 
     # These will be lists of tuples: (sec, priority-flags)
     phase1_secs = []
@@ -190,7 +224,7 @@ def assign_priorities():
         # this now.
         # Because there are duplicate registrations for each, just get the
         # distinct users who marked this class as priority.
-        priority_regs = StudentRegistration.valid_objects().filter(section=sec, relationship__name=priority_type).values('user').distinct()
+        priority_regs = ESPUser.objects.filter(id__in=StudentRegistration.valid_objects().filter(section=sec, relationship__name=priority_type).values_list('user', flat=True)).distinct()
         if (priority_regs.count() > class_cap(sec)):
             phase2_secs.append((sec, priority_regs))
         else: 
@@ -198,14 +232,20 @@ def assign_priorities():
 
     # Handle the phase 1 sections
     for sec, priority in phase1_secs:
+        print "== Adding priority students to " + sec.emailcode() + ": " + sec.title() + " =="
+
         # Loop through all classes where priority flags is less than capacity.
         # Try to register each student for the class; we don't care if
         # it fails, because no one's competing for the spots.
-        for reg in priority:
-            try_add(ESPUser.objects.get(id=reg['user']), sec)
+        for thisuser in priority:
+            success = try_add(thisuser, sec)
+            if success:
+                print thisuser.name() + " (" + thisuser.username + ")"
 
     # Handle the phase 2 sections
     for sec, priority in phase2_secs:
+        print "== Adding priority students to " + sec.emailcode() + ": " + sec.title() + " =="
+
         # We want to lottery students by ordering them in some way,
         # giving preference to the students who have so far gotten fewer
         # of their priority classes.  Once the order is established,
@@ -214,7 +254,7 @@ def assign_priorities():
         #
         # Students are likely to have a higher priority reg value when they
         # have fewer classes so far, so sort the students by decreasing reg value.
-        users_by_priority = sorted([bundle_priority(ESPUser.objects.get(id=r['user'])) for r in priority], key=get_val, reverse=True)
+        users_by_priority = sorted([bundle_priority(r) for r in priority], key=get_val, reverse=True)
 
         # Now register the students in the order they got sorted.
         # Note: this could alternatively be done by trying to add each user in
@@ -224,12 +264,17 @@ def assign_priorities():
         registered_count = 0
         cur_index = 0
         while (registered_count < class_cap(sec)) and (cur_index < len(users_by_priority)):
-            success = try_add(get_user(users_by_priority[cur_index]), sec)
+            thisuser = get_user(users_by_priority[cur_index])
+            success = try_add(thisuser, sec)
             cur_index += 1
 
             # If we succeeded, make sure to add one to the registered count.
             if success:
+                print thisuser.name() + " (" + thisuser.username + ")"
                 registered_count += 1
+
+    # Now print out if there were any issues.  This step apparently takes a while.
+    print_issues()
 
 
 def screwed_sweep_p1_printout():
@@ -252,7 +297,7 @@ def screwed_sweep_p1_printout():
 
     users = sorted(program.students()['lotteried_students'], key=pclasses_pct)
     for user in users:
-        print user.name(), ":", pclasses_pct(user), "(" + classes_cnt(user)[0] + "/" + classes_cnt(user)[1] + ")"    
+        print user.name(), ":", pclasses_pct(user), "(" + str(classes_cnt(user)[0]) + "/" + str(classes_cnt(user)[1]) + ")"
         
 
 def assign_interesteds():
@@ -274,28 +319,39 @@ def assign_interesteds():
     # something they're interested in.  Used for sorting the sections.
     # Actually, this key is changing to a division.
     def interested_count(sec):
-        count = StudentRegistration.valid_objects.filter(section=sec, relationship__name=interested_type).values('user').distinct().count()
+        count = StudentRegistration.valid_objects().filter(section=sec, relationship__name=interested_type).values_list('user', flat=True).distinct().count()
         return count/(1.0*class_cap(sec))
 
     # Filter out all the classes that we filled up in the priority reg stage
     # so we don't worry about them anymore in this stage.
-    nonempty_secs = [sec for sec in program.sections() if not sec.isFull()]
+    nonempty_secs = [sec for sec in program.sections().filter(status__gt=0) if not sec.isFull()]
 
     # Now sort the classes by fewest number of people interested.
-    sorted_secs = sorted(nonempty_secs, interested_count)
+    sorted_secs = sorted(nonempty_secs, key=interested_count)
 
     # In the order of the classes that have the fewest interested
     # people in it (currently, ratio'd with how large they are), 
     # fill up the classes by lottery.
     for sec in sorted_secs:
+        print "== Adding interested students to " + sec.emailcode() + ": " + sec.title() + " =="
+
         # Same procedure as in the case of priority registrations.
-        interesteds = StudentRegistration.valid_objects().filter(section=sec, relationship__name=interested_type).values('user').distinct()
-        users_by_val = sorted([bundle_interested(ESPUser.objects.get(id=r['user'])) for r in interesteds], key=get_val, reverse=True)
+        interesteds = StudentRegistration.valid_objects().filter(section=sec, relationship__name=interested_type).values_list('user', flat=True).distinct()
+        myusers = ESPUser.objects.filter(id__in=interesteds)
+        users_by_val = sorted([bundle_interested(u) for u in myusers], key=get_val, reverse=True)
 
         # It's easier to, instad of counting, just fill the class till it's
         # full.  If we change to actually using capacity*, this will need to
         # change to have logic similar to the priority registration.
         cur_index = 0
-        while not (sec.isFull()):
-            try_add(get_user(users_by_val[cur_index)), sec)
+        while not (sec.isFull() or cur_index >= len(users_by_val)):
+            thisuser = get_user(users_by_val[cur_index])
+            success = try_add(thisuser, sec)
             cur_index += 1
+
+            # If we succeeded, make sure to add one to the registered count.
+            if success:
+                print thisuser.name() + " (" + thisuser.username + ")"
+
+    # Now print out if there were any issues.  This step apparently takes a while.
+    print_issues()
