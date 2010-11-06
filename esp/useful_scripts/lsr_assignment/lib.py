@@ -204,7 +204,10 @@ def assign_priorities():
     marked it priority), and do a preference-based lottery for the
     people who have marked this class.    
     """
-    all_secs = program.sections().filter(status__gt=0)
+    # Randomize the order in which we go through the priority classes, because
+    # the algorithm doesn't specify, and we don't want to leave them in
+    # database order.
+    all_secs = random.shuffle(list(program.sections().filter(status__gt=0)))
 
     # These will be lists of tuples: (sec, priority-flags)
     phase1_secs = []
