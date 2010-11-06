@@ -70,7 +70,7 @@ def capacity_star(cls):
 ####################
 
 def lunch_free(user, lunchtimes):
-    return bool(ESPUser(user).getEnrolledSectionsFromProgram(program).filter(meeting_times__in=lunchtimes))
+    return not bool(ESPUser(user).getEnrolledSectionsFromProgram(program).filter(meeting_times__in=lunchtimes))
 
 # TODO(rye): Add a mechanism for lunch, with some helper functions to ensure lunch.
 def try_add(user, cls):
