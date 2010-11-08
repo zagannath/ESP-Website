@@ -6,6 +6,10 @@ tr.CLS_rsrc_req_Computer-lab {
 background: #B0E0E6;
 }
 
+/*td.CLS_rsrc_req_LCD-projector, td.ROOM_rsrc_LCD-projector {
+font-style: italic;
+}*/
+
 tr.CLS_grade_min_7, tr.CLS_grade_min_8 {
 /*border: 5px solid black;*/
 font-weight: bold;
