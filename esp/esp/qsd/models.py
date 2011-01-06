@@ -40,6 +40,7 @@ from django.core.cache import cache
 from django.contrib.auth.models import User
 
 from esp.datatree.models import *
+from esp.datatree.url_map import get_branch_info, extract_subsection
 from esp.lib.markdown import markdown
 from esp.db.fields import AjaxForeignKey
 from esp.db.file_db import *
@@ -57,6 +58,27 @@ class QSDManager(FileDBManager):
         except QuasiStaticData.DoesNotExist:
             return None
     get_by_path__name.depend_on_row(lambda:QuasiStaticData, lambda qsd: {'path': qsd.path, 'name': qsd.name})
+
+    def get_by_url(self, url):
+        """
+        Find latest QSD at a given URL (without the "html" file extension).
+
+        If you pass in '/learn/index.html' it happens to work,
+        but only because we have URLs like '/learn/index.edit.html',
+        which get passed in as '/learn/index.edit'.
+
+        So '/learn/index.html' is construed as "html the page at /learn/index",
+        but since we discard the action information, it happens to do what
+        you'd have expected before you read this.
+
+        """
+        # Find the DataTree URI
+        tree_node_uri, view_address = get_branch_info(*(extract_subsection(url)))[:2]
+        # Fetch the page
+        try:
+            return self.get_by_path__name(DataTree.get_by_uri(tree_node_uri), view_address)
+        except DataTree.DoesNotExist:
+            return None
 
     def __str__(self):
         return "QSDManager()"

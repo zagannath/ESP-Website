@@ -35,6 +35,26 @@ Learning Unlimited, Inc.
 
 from esp.section_data import section_redirect_keys, subsection_map
 
+def extract_subsection(url):
+	"""
+	Given a url, return (url without subsection, subsection).
+
+	The subsection, if present, is the first path element and is one of
+	the keys found in esp.section_data.subsection_map.
+
+	"""
+	# Preprocess the URL: strip spaces and leading slash
+	url = url.strip()
+	if url[0] == '/':
+		url = url[1:]
+	# Extract subsection
+	parts = url.split('/', 1)
+	if parts[0] in section_redirect_keys:
+		subsection = parts.pop(0)
+	else:
+		subsection = None
+	return ('/'.join(parts), subsection)
+
 def get_branch_info(url, subsection=None):
     """
     Given URL info, map to the DataTree and extract related info.
