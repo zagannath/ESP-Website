@@ -9,3 +9,7 @@ section_redirect_keys = {
     }
 
 section_prefix_keys = {'teach': 'teach', 'learn': 'learn', 'programs': ''}
+
+subsection_map = {
+    'programs': '',
+    }

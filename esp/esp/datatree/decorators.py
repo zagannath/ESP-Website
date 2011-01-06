@@ -35,18 +35,11 @@ Learning Unlimited, Inc.
 
 from esp.users.models    import GetNodeOrNoBits, PermissionDenied
 from esp.datatree.models import *
+from esp.datatree.url_map import get_branch_info
 from django.http import Http404
 from esp.web.util.main import render_to_response
 from django.core.cache import cache
 
-# Where to start our tree search.
-
-from esp.section_data import section_redirect_keys
-   
-subsection_map = {
-    'programs': '',
-    }    
-    
 def branch_find(view_func):
     """
     A decorator to be used on a view.
@@ -70,74 +63,42 @@ def branch_find(view_func):
                                                url, subsection, filename)
         cache_key = cache_key.replace(' ', '')
         retVal = cache.get(cache_key)
-        if retVal is not None:
-            return view_func(*((request,) + retVal + args), **kwargs)
+        if retVal is None:
+            # function "constants"
+            READ_VERB = GetNode('V/Flags/Public')
 
-        # If we didn't find it in the cache, keep looking
+            # Process the URL
+            if filename:
+                url += '/%s' % filename
+            tree_node_uri, view_address, subsection, action = get_branch_info(url, subsection)
 
-        # function "constants"
-        READ_VERB = GetNode('V/Flags/Public')
-        DEFAULT_ACTION = 'read'
+            # Fetch the datatree node
+            try:
+                # attempt to get the node
+                branch = GetNodeOrNoBits(tree_node_uri,
+                                         request.user,
+                                         READ_VERB,
+                                        #only create if we are planning on writing.
+                                         action in ('create','edit',)
+                                         )
+            except PermissionDenied:
+                raise Http404, "No such site, no bits to create it: '%s'" % \
+                             tree_node_uri
+            except DataTree.NoSuchNodeException, e:
+                edit_link = request.path[:-5]+'.edit.html'
+                branch = e.anchor
+                return render_to_response('qsd/nopage_create.html',
+                                          request,
+                                          (branch, section),
+                                          {'edit_link': edit_link})
 
-        if filename:
-            url += '/%s' % filename
+            # Save our cached answer
+            retVal = (branch, view_address, subsection, action)
 
-        # the root of the datatree
-        section = section_redirect_keys[subsection]
-        
-        #   Rewrite 'subsection' if we want to.
-        if subsection_map.has_key(subsection):
-            subsection = subsection_map[subsection]
-        tree_root = 'Q/' + section
-
-        tree_end = url.split('/')
-
-        view_address = tree_end.pop()
-
-        if view_address.strip() == '':
-            raise Http404, 'Invalid URL.'
-
-        tree_node_uri = tree_root + '/' + '/'.join(tree_end)
-
-
-        view_address_pieces = view_address.split('.')
-
-        if len(view_address_pieces) > 1:
-            action       = view_address_pieces[-1]
-            view_address = '.'.join(view_address_pieces[:-1])
-        else:
-            action       = DEFAULT_ACTION
-            view_address = view_address_pieces[0]
-
-
-        try:
-            # attempt to get the node
-            branch = GetNodeOrNoBits(tree_node_uri,
-                                     request.user,
-                                     READ_VERB,
-                                    #only create if we are planning on writing.
-                                     action in ('create','edit',)
-                                     )
-        except PermissionDenied:
-            raise Http404, "No such site, no bits to create it: '%s'" % \
-                         tree_node_uri
-        except DataTree.NoSuchNodeException, e:
-            edit_link = request.path[:-5]+'.edit.html'
-            branch = e.anchor
-            return render_to_response('qsd/nopage_create.html',
-                                      request,
-                                      (branch, section),
-                                      {'edit_link': edit_link})
-
-        if subsection:
-            view_address = "%s:%s" % (subsection, view_address)
-
-        retVal = (branch, view_address, subsection, action)
-
-        if request.user.id is None:
-            cache.set(cache_key, retVal, 86400)
-        else:
-            cache.set(cache_key, retVal, 3600)
+            if request.user.id is None:
+                cache.set(cache_key, retVal, 86400)
+            else:
+                cache.set(cache_key, retVal, 3600)
 
         return view_func(*((request,) + retVal + args), **kwargs)
 
