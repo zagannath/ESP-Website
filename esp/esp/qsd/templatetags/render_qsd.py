@@ -11,7 +11,7 @@ from urllib import quote
 register = template.Library()
 
 def cache_key(qsd, user=None):
-    return qsd_cache_key(qsd.path, qsd.name, user,)
+    return '%s_qsd' % qsd.id
 
 def inline_cache_key(input_anchor, path, user=None):
     if isinstance(input_anchor, basestring):
