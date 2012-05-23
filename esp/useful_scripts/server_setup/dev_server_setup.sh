@@ -572,8 +572,11 @@ then
         echo "Dropbox-hosted directories have been linked into the site's media directories."
     else
         #   Set up default media directories
-        ln -sf $MEDIADIR/default_styles $MEDIADIR/styles
-        ln -sf $MEDIADIR/default_images $MEDIADIR/images
+
+        #ln -sf $MEDIADIR/default_styles $MEDIADIR/styles
+        # This is included in the repo by default
+
+	ln -sf $MEDIADIR/default_images $MEDIADIR/images
         ln -sf ${DJANGO_DIR}/contrib/admin/media $MEDIADIR/admin
         echo "Default media files have been linked into the site's media directories."
     fi
