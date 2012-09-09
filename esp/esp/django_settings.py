@@ -226,6 +226,7 @@ INSTALLED_APPS = (
     'esp.dataviews',
     'django.contrib.redirects',
     'esp.formstack',
+    'esp.application',
 )
 
 import os
