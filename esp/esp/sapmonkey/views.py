@@ -1,22 +1,38 @@
 from django.conf import settings
 from django.db.models import Q
 from django.http import HttpResponse, Http404, HttpResponseServerError
+from django.views.decorators.http import require_POST
 
 from esp.program.models import Program, ClassSubject
 from esp.users.models import admin_required, ESPUser
 
-import gdata.gauth
-import gdata.spreadsheets.client
-import gdata.spreadsheets.data
-
+import gspread
 import json
 import re
 
-OAUTH_SCOPES = [ "https://spreadsheets.google.com/feeds",
-    "https://docs.google.com/feeds" ]
-USER_AGENT = ""
+# Columns in the Accounting spreadsheet, one-indexed
+AC_DATE         = 1
+AC_AMOUNT       = 2
+AC_USERNAME     = 3
+AC_CODE         = 4
+AC_RFP_STATUS   = 5
+AC_CATEGORY     = 6
+AC_DESCRIPTION  = 7
+AC_NOTES        = 8
+
+ACCOUNTING_HEADER = "Date"  # header row, first column
+
+# Columns in the Budget spreadsheet, one-indexed
+BC_CATEGORY     = 1
+BC_SUBCATEGORY  = 2
+BC_QUANTITY     = 3
+BC_UNIT_REV     = 4
+BC_TOTAL_REV    = 5
+BC_COMMENTS     = 6
 
 BUDGET_HEADER = "Category"
+
+
 
 @admin_required
 def check_auth(request):
@@ -41,9 +57,9 @@ def lookup_username(request, username):
 
 @admin_required
 def list_budget_categories(request):
-    srv = create_ss_service()
-    worksheets = srv.get_worksheets(
-        spreadsheet_key=settings.BUDGET_SPREADSHEET_KEY)
+    gc = gspread.login(settings.GOOGLE_USERNAME, settings.GOOGLE_PASSWORD)
+    spreadsheet = gc.open_by_key(settings.BUDGET_SPREADSHEET_KEY)
+    worksheets = spreadsheet.worksheets()
     
     response_data = dict()
     response_data['programs'] = list()
@@ -55,20 +71,19 @@ def list_budget_categories(request):
         response_data['programs'].append(c)
     
     # Iterate over each worksheet (i.e., each program's budget)
-    for w in worksheets.entry:
+    for w in worksheets:
         budget_categories = list()
         
-        # Get contents of worksheet
-        cell_feed = srv.get_cells(
-            spreadsheet_key=settings.BUDGET_SPREADSHEET_KEY,
-            worksheet_id=w.get_worksheet_id())
-        
         # Find out how many rows are in the header (about 6)
-        header_row = find_header_row(cell_feed, BUDGET_HEADER)
+        header_row = find_header_row(w, BUDGET_HEADER)
         if header_row is None:
             return HttpResponseServerError(
                 'No header row found - looking for "' + BUDGET_HEADER +
-                '" in column A of ' + w.title.text)
+                '" in column A of ' + w.title)
+        
+        # Get contents of worksheet
+        categories = w.col_values(BC_CATEGORY)
+        subcategories = w.col_values(BC_SUBCATEGORY)
         
         # Iterate over the rows to list categories in the format
         #   "Big Category - Detailed Category" (i.e., "Publicity - Booth Candy")
@@ -77,24 +92,23 @@ def list_budget_categories(request):
         # Note that items in Column 1 that contain '$' are subtotals, not
         #   categories, and are skipped
         category = "None"
-        for cell_entry in cell_feed.entry:
-            if int(cell_entry.cell.row) <= header_row:
-                # Skip header rows
-                continue
+        for n in range(header_row, w.row_count):
+            # n is a zero-based index, header_row is one-based.
+            # skip the header.
             
-            if cell_entry.cell.col is '1':  # Col 1: "Big Category"
-                if cell_entry.content.text is not None \
-                    and cell_entry.content.text.find('$') == -1:
-                    
-                    category = cell_entry.content.text
+            if (n < len(categories)
+                and categories[n]
+                and not '$' in categories[n]):   # cells with a '$' are subtotals
+                
+                category = categories[n]
             
-            if cell_entry.cell.col is '2':  # Col 2: "Detailed Category"
-                if cell_entry.content.text is not None:
-                    item = category + ' - ' + cell_entry.content.text
-                    budget_categories.append(item)
+            if n < len(subcategories) and subcategories[n]:
+                
+                item = category + ' - ' + subcategories[n]
+                budget_categories.append(item)
         
-        response_data['programs'].append(w.title.text)
-        response_data['categories'][w.title.text] = budget_categories
+        response_data['programs'].append(w.title)
+        response_data['categories'][w.title] = budget_categories
     
     return HttpResponse(json.dumps(response_data), mimetype='application/json')
 
@@ -145,12 +159,13 @@ def list_classes(request, program, select, username):
     return HttpResponse(json.dumps(response_data), mimetype='application/json')
 
 @admin_required
+#TODO: @require_POST
 def save_rfp(request):
     data = json.loads(request.REQUEST['data'])
     
-    srv = create_ss_service()
-    worksheets = srv.get_worksheets(
-        spreadsheet_key=settings.ACCOUNTING_SPREADSHEET_KEY)
+    gc = gspread.login(settings.GOOGLE_USERNAME, settings.GOOGLE_PASSWORD)
+    spreadsheet = gc.open_by_key(settings.ACCOUNTING_SPREADSHEET_KEY)
+    worksheets = spreadsheet.worksheets()
     
     # Put each line item into the budget spreadsheet
     for n in range(0, len(data['line_items'])):
@@ -161,82 +176,66 @@ def save_rfp(request):
         name = re.sub('\s*' + str(settings.FISCAL_YEAR) + '\s*', '', name)  # remove year, if present
         name = name.lower() # case-insentitive compare
         
-        sheet = None
-        for w in worksheets.entry:
-            if name == w.title.text.lower():
-                sheet = w
+        w = None
+        for tmp in worksheets:
+            if name == tmp.title.lower():
+                w = tmp
                 break
         
-        if sheet is None:
+        if w is None:
             raise Http404("No program found that matches: " + item['program'])
         
-        # Check that the RFP hasn't already been entered
-        cell_feed = srv.get_cells(
-            spreadsheet_key=settings.ACCOUNTING_SPREADSHEET_KEY,
-            worksheet_id=w.get_worksheet_id())
+        header_row = find_header_row(w, ACCOUNTING_HEADER)
         
-        for cell_entry in cell_feed.entry:
-            text = cell_entry.content.text
-            if text is not None and (text.startswith(data['rfp_number'])
-                or text.startswith('RFP-' + data['rfp_number'])):
+        # Check that the RFP hasn't already been entered
+        existing_codes = w.col_values(AC_CODE)
+        for n in range(header_row, len(existing_codes)):
+            if (existing_codes[n] is not None and
+                data['rfp_number'] in existing_codes[n]):
+                
                 return HttpResponseServerError("RFP already exists")
         
-        # Find last row in spreadsheet with any text
-        last_row = find_header_row(cell_feed, BUDGET_HEADER)
-        for cell_entry in cell_feed.entry:
-            if int(cell_entry.cell.row) > last_row:
-                last_row = int(cell_entry.cell.row)
+        # Insert RFP into spreadsheet
         
-        # Insert text below this row
-        row = last_row + 1
-        if row > int(sheet.row_count.text):
-            raise Http404("No blank row in which to insert RFP data")
+        row = len(w.get_all_values()) + 1
+          # get_all_values() leaves off the blank rows at the bottom;
+          # this returns the one-indexed number of the row *after*
+          # the last row with anything in it - this is where we'll
+          # put the new data
         
-        batch = gdata.spreadsheets.data.build_batch_cells_update(
-            spreadsheet_key=settings.ACCOUNTING_SPREADSHEET_KEY,
-            worksheet_id=w.get_worksheet_id())
-        
-        rfp_value = 'RFP-' + data['rfp_number']
+        code = 'RFP-' + data['rfp_number']
         if len(data['line_items']) > 1:
-            rfp_value = rfp_value + '-' + str(n+1)
+            code = code + '-' + str(n+1)
         
         desc = ''
         if 'class' in item:
             desc = item['class']
-        elif 'desc' in item:
+        elif 'description' in item:
             desc = item['description']
         
-        batch.add_set_cell(row=str(row), col='1', input_value=item['date'])
-        batch.add_set_cell(row=str(row), col='2', input_value=item['amount'])
-        batch.add_set_cell(row=str(row), col='3', input_value=data['esp_username'])
-        batch.add_set_cell(row=str(row), col='4', input_value=rfp_value)
-        batch.add_set_cell(row=str(row), col='5', input_value='Unreviewed')
-        batch.add_set_cell(row=str(row), col='6', input_value=item['budget_category'])
-        batch.add_set_cell(row=str(row), col='7', input_value=desc)
-        srv.batch(batch)
-    
-    print "Done"
+        addr = 'A%s:H%s' % (row, row)
+        cells = w.range(addr)
+        cells[AC_DATE-1].value          = item['date']
+          # switch from one-indexed AC_* constants to zero-indexed list
+        cells[AC_AMOUNT-1].value        = item['amount']
+        cells[AC_USERNAME-1].value      = data['esp_username']
+        cells[AC_CODE-1].value          = code
+        cells[AC_RFP_STATUS-1].value    = 'Unreviewed'
+        cells[AC_CATEGORY-1].value      = item['budget_category']
+        cells[AC_DESCRIPTION-1].value   = desc
+        cells[AC_NOTES-1].value         = ''
+        w.update_cells(cells)
+        
     return HttpResponse()
 
 
 
-def create_ss_service():
-    token = gdata.gauth.token_from_blob(settings.GOOGLE_CREDENTIALS)
-    srv = gdata.spreadsheets.client.SpreadsheetsClient(source=USER_AGENT)
-    srv = token.authorize(srv)
-    return srv
-
-def find_header_row(cell_feed, first_column_header):
-    header_row = None
-    for cell_entry in cell_feed.entry:
-        if int(cell_entry.cell.col) != 1:
-            continue
-        
-        if cell_entry.content.text == first_column_header:
-            header_row = int(cell_entry.cell.row)
-            break
-    
-    return header_row
+def find_header_row(worksheet, first_column_header):
+    column = worksheet.col_values(1)
+    for n in range(0, worksheet.row_count):
+        if column[n] == first_column_header:
+            return n + 1  # zero-indexed list, one-indexed sheet
+    return None
 
 def find_program(search):
     # Append the current year, if not included
