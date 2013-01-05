@@ -7,6 +7,7 @@ from esp.users.models import admin_required, ESPUser
 
 import gdata.gauth
 import gdata.spreadsheets.client
+import gdata.spreadsheets.data
 
 import json
 import re
@@ -19,7 +20,7 @@ BUDGET_HEADER = "Category"
 
 @admin_required
 def check_auth(request):
-    return HttpResponse("SAPmonkey connected!")
+    return HttpResponse("SAPmonkey connected! " + request.COOKIES['csrftoken'])
 
 @admin_required
 def lookup_username(request, username):
@@ -41,7 +42,8 @@ def lookup_username(request, username):
 @admin_required
 def list_budget_categories(request):
     srv = create_ss_service()
-    worksheets = srv.get_worksheets(spreadsheet_key=settings.BUDGET_SPREADSHEET_KEY)
+    worksheets = srv.get_worksheets(
+        spreadsheet_key=settings.BUDGET_SPREADSHEET_KEY)
     
     response_data = dict()
     response_data['programs'] = list()
@@ -141,6 +143,82 @@ def list_classes(request, program, select, username):
         raise Http404("Unknown option")
     
     return HttpResponse(json.dumps(response_data), mimetype='application/json')
+
+@admin_required
+def save_rfp(request):
+    data = json.loads(request.REQUEST['data'])
+    
+    srv = create_ss_service()
+    worksheets = srv.get_worksheets(
+        spreadsheet_key=settings.ACCOUNTING_SPREADSHEET_KEY)
+    
+    # Put each line item into the budget spreadsheet
+    for n in range(0, len(data['line_items'])):
+        item = data['line_items'][str(n)]
+        
+        # Find which worksheet (i.e., program/office) matches
+        name = item['program']
+        name = re.sub('\s*' + str(settings.FISCAL_YEAR) + '\s*', '', name)  # remove year, if present
+        name = name.lower() # case-insentitive compare
+        
+        sheet = None
+        for w in worksheets.entry:
+            if name == w.title.text.lower():
+                sheet = w
+                break
+        
+        if sheet is None:
+            raise Http404("No program found that matches: " + item['program'])
+        
+        # Check that the RFP hasn't already been entered
+        cell_feed = srv.get_cells(
+            spreadsheet_key=settings.ACCOUNTING_SPREADSHEET_KEY,
+            worksheet_id=w.get_worksheet_id())
+        
+        for cell_entry in cell_feed.entry:
+            text = cell_entry.content.text
+            if text is not None and (text.startswith(data['rfp_number'])
+                or text.startswith('RFP-' + data['rfp_number'])):
+                return HttpResponseServerError("RFP already exists")
+        
+        # Find last row in spreadsheet with any text
+        last_row = find_header_row(cell_feed, BUDGET_HEADER)
+        for cell_entry in cell_feed.entry:
+            if int(cell_entry.cell.row) > last_row:
+                last_row = int(cell_entry.cell.row)
+        
+        # Insert text below this row
+        row = last_row + 1
+        if row > int(sheet.row_count.text):
+            raise Http404("No blank row in which to insert RFP data")
+        
+        batch = gdata.spreadsheets.data.build_batch_cells_update(
+            spreadsheet_key=settings.ACCOUNTING_SPREADSHEET_KEY,
+            worksheet_id=w.get_worksheet_id())
+        
+        rfp_value = 'RFP-' + data['rfp_number']
+        if len(data['line_items']) > 1:
+            rfp_value = rfp_value + '-' + str(n+1)
+        
+        desc = ''
+        if 'class' in item:
+            desc = item['class']
+        elif 'desc' in item:
+            desc = item['description']
+        
+        batch.add_set_cell(row=str(row), col='1', input_value=item['date'])
+        batch.add_set_cell(row=str(row), col='2', input_value=item['amount'])
+        batch.add_set_cell(row=str(row), col='3', input_value=data['esp_username'])
+        batch.add_set_cell(row=str(row), col='4', input_value=rfp_value)
+        batch.add_set_cell(row=str(row), col='5', input_value='Unreviewed')
+        batch.add_set_cell(row=str(row), col='6', input_value=item['budget_category'])
+        batch.add_set_cell(row=str(row), col='7', input_value=desc)
+        srv.batch(batch)
+    
+    print "Done"
+    return HttpResponse()
+
+
 
 def create_ss_service():
     token = gdata.gauth.token_from_blob(settings.GOOGLE_CREDENTIALS)
