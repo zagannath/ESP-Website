@@ -8,6 +8,7 @@ from esp.users.models import admin_required, ESPUser
 
 import gspread
 import json
+import os
 import re
 
 # Columns in the Accounting spreadsheet, one-indexed
@@ -57,6 +58,13 @@ def lookup_username(request, username):
 
 @admin_required
 def list_budget_categories(request):
+    f = open(os.path.join(settings.PROJECT_ROOT, 'esp', 'sapmonkey', 'categories.cache'), 'r')
+    data = f.read()
+    f.close()
+    return HttpResponse(data, mimetype='application/json')
+
+@admin_required
+def save_budget_categories(request):
     gc = gspread.login(settings.GOOGLE_USERNAME, settings.GOOGLE_PASSWORD)
     spreadsheet = gc.open_by_key(settings.BUDGET_SPREADSHEET_KEY)
     worksheets = spreadsheet.worksheets()
@@ -110,7 +118,11 @@ def list_budget_categories(request):
         response_data['programs'].append(w.title)
         response_data['categories'][w.title] = budget_categories
     
-    return HttpResponse(json.dumps(response_data), mimetype='application/json')
+    f = open(os.path.join(settings.PROJECT_ROOT, 'esp', 'sapmonkey', 'categories.cache'), 'w')
+    f.write(json.dumps(response_data))
+    f.close()
+    
+    return HttpResponse("Saved")
 
 @admin_required
 def list_classes(request, program, select, username):
@@ -159,7 +171,7 @@ def list_classes(request, program, select, username):
     return HttpResponse(json.dumps(response_data), mimetype='application/json')
 
 @admin_required
-#TODO: @require_POST
+@require_POST
 def save_rfp(request):
     data = json.loads(request.REQUEST['data'])
     
@@ -175,6 +187,10 @@ def save_rfp(request):
         name = item['program']
         name = re.sub('\s*' + str(settings.FISCAL_YEAR) + '\s*', '', name)  # remove year, if present
         name = name.lower() # case-insentitive compare
+        
+        # Check for program "Miscellaneous/Other"
+        if name == "miscellaneous/other":
+            name = "miscellaneous"
         
         w = None
         for tmp in worksheets:
@@ -227,6 +243,61 @@ def save_rfp(request):
         w.update_cells(cells)
         
     return HttpResponse()
+
+@admin_required
+def view_rfp(request, number):
+    gc = gspread.login(settings.GOOGLE_USERNAME, settings.GOOGLE_PASSWORD)
+    spreadsheet = gc.open_by_key(settings.ACCOUNTING_SPREADSHEET_KEY)
+    worksheets = spreadsheet.worksheets()
+    
+    response_data = dict()
+    response_data['warnings'] = list()
+    
+    code = 'RFP-' + number
+    for w in worksheets:
+        nums = w.col_values(AC_CODE)
+        
+        for i in range(0, len(nums)):
+            if nums[i] is None:
+                continue
+            
+            if code not in nums[i]:
+                continue
+            
+            line = 'line-1'
+            
+            parts = nums[i].split('-')
+            if len(parts) == 3:
+               line = 'line-' + parts[2]
+            
+            if line in response_data:
+                response_data['warnings'].append('Duplicate line items in spreadsheet: ' + w.title + ' row ' + str(i + 1)
+                    + ' and ' + response_data[line]['ssid'])
+                continue
+            
+            row = w.row_values(i + 1)
+            response_data[line] = dict()
+            response_data[line]['ssid'] = w.title + ' row ' + str(i + 1)
+            response_data[line]['program'] = w.title
+            if len(row) > AC_DATE - 1:
+                response_data[line]['date'] = row[AC_DATE - 1]    # 0/1 index
+            if len(row) > AC_AMOUNT - 1:
+                response_data[line]['amount'] = row[AC_AMOUNT - 1]
+            if len(row) > AC_USERNAME - 1:
+                response_data[line]['username'] = row[AC_USERNAME - 1]
+            if len(row) > AC_RFP_STATUS - 1:
+                response_data[line]['status'] = row[AC_RFP_STATUS - 1]
+            if len(row) > AC_CATEGORY - 1:
+                response_data[line]['category'] = row[AC_CATEGORY - 1]
+            if len(row) > AC_DESCRIPTION - 1:
+                response_data[line]['description'] = row[AC_DESCRIPTION - 1]
+            if len(row) > AC_NOTES - 1:
+                response_data[line]['notes'] = row[AC_NOTES - 1]
+    
+    if len(response_data) == 1:
+        raise Http404()
+    
+    return HttpResponse(json.dumps(response_data), mimetype='application/json')
 
 
 
