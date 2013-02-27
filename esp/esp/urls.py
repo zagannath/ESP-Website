@@ -165,6 +165,9 @@ urlpatterns += patterns('esp.qsdmedia.views',
 urlpatterns += patterns('', 
     (r'^accounting/', include('esp.accounting.urls')) )
 
+urlpatterns += patterns('esp.formstack.views',
+    (r'^formstack_webhook/?$', 'formstack_webhook'),)
+
 urlpatterns +=patterns('esp.customforms.views',
 	(r'^customforms/$','landing'),
 	(r'^customforms/create/$','formBuilder'),
