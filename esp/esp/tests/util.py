@@ -1,12 +1,12 @@
 import pickle
 from esp.web.util.structures import cross_set
-from django.test.testcases import TestCase
+from django.test import LiveServerTestCase
 from django.core.cache import cache
 from esp.cache.registry import dump_all_caches
 import string
 import random
 
-class CacheFlushTestCase(TestCase):
+class CacheFlushTestCase(LiveServerTestCase):
     """ Flush the cache at the start and end of this test case """
     def _flush_cache(self):
         """ Don't do any actual fancy deletions; just change the cache prefix """
