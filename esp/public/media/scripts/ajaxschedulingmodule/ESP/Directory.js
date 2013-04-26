@@ -262,6 +262,7 @@ ESP.declare('ESP.Scheduling.Widgets.SearchBox', Class.create({
         
             this.el = $j('<div id="searchbox"/>').addClass('searchbox').addClass('ui-resizable');
 	    this.el.resizable({
+		handles: 's',
 		resize: function(e) {
 		    $j("#directory-table-wrapper").height(directory_start_height-10-$j("#searchbox").height());
 		}
