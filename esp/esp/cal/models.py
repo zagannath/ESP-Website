@@ -161,7 +161,7 @@ class Event(models.Model):
         """ Takes a list of events and returns a list of lists where each sublist is a contiguous group. """
         from copy import copy
         sorted_list = copy(event_list)
-        sorted_list.sort()
+        #sorted_list.sort()
         
         grouped_list = []
         current_group = []

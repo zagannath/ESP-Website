@@ -179,7 +179,7 @@ class ProgramModuleObj(models.Model):
         #   If a "core" module has been found:
         #   Put the user through a sequence of all required modules in the same category.
         #   Only do so if we've not blocked this behavior, though
-        if scrmi.force_show_required_modules:
+        if scrmi.force_show_required_modules and call_txt == moduleobj.module.main_call:
             if tl != "manage" and request.user.is_authenticated() and isinstance(moduleobj, CoreModule):
                 other_modules = moduleobj.findCategoryModules(False)
                 for m in other_modules:
