@@ -449,6 +449,7 @@ class ProgramPrintables(ProgramModuleObj):
             ci = ContactInfo.objects.filter(user=teacher, phone_cell__isnull=False).exclude(phone_cell='').order_by('id')
             if ci.count() > 0:
                 phone_cell = ci[0].phone_cell
+                phone_day = ci[0].phone_day
             else:
                 phone_day = 'N/A'
                 phone_cell = 'N/A'
@@ -872,7 +873,7 @@ Student schedule for %s:
 
         students.sort()
         
-        return ProgramPrintables.get_student_schedules(request, students, prog, onsite)
+        return ProgramPrintables.get_student_schedules(request, students, prog, extra, onsite)
 
     @staticmethod
     def get_student_schedules(request, students, prog, extra='', onsite=False):

@@ -112,8 +112,11 @@ class OnSiteClassList(ProgramModuleObj):
                             if s.meeting_times.filter(id__in=target_times).count() > 0:
                                 s.unpreregister_student(user)
                                 msgs.append('Removed %s (%d) from %s' % (user.name(), user.id, s))
-                        sec.preregister_student(user, overridefull=True)
-                        msgs.append('Added %s (%d) to %s' % (user.name(), user.id, sec))
+                        result = sec.preregister_student(user, overridefull=True)
+                        if result: 
+                            msgs.append('Added %s (%d) to %s' % (user.name(), user.id, sec))
+                        else:
+                            msgs.append('Could not add %d (%d) to %s' % (user.name(), user.id, sec))
         context['msgs'] = msgs
         
         reg_counts = prog.student_counts_by_section_id()
