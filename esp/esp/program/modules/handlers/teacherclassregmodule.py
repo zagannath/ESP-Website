@@ -769,7 +769,7 @@ class TeacherClassRegModule(ProgramModuleObj, module_ext.ClassRegModuleInfo):
                     context['class'] = newclass
 
                 if action=='edit':
-                    reg_form = TeacherClassRegForm(self, current_data)
+                    reg_form = TeacherClassRegForm(self, 'edit', current_data)
                 elif action=='editopenclass':
                     reg_form = TeacherOpenClassRegForm(self, current_data)
                 

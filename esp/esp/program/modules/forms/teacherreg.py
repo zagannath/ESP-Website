@@ -106,7 +106,7 @@ class TeacherClassRegForm(FormWithRequiredCss):
                                                    help_text='Please explain any special circumstances and equipment requests. Remember that you can be reimbursed for up to $30 (or more with the directors\' approval) for class expenses if you submit itemized receipts.' )
     
     
-    def __init__(self, module, *args, **kwargs):
+    def __init__(self, module, form_type='create', *args, **kwargs):
         from esp.program.controllers.classreg import get_custom_fields
     
         def hide_field(field, default=None):
@@ -119,7 +119,7 @@ class TeacherClassRegForm(FormWithRequiredCss):
                 hide_field(field, default=field.choices[0][0])
         
         super(TeacherClassRegForm, self).__init__(*args, **kwargs)
-        
+
         prog = module.get_program()
         
         section_numbers = module.allowed_sections_actual
@@ -227,6 +227,9 @@ class TeacherClassRegForm(FormWithRequiredCss):
         if tag_data:
             for field_name in tag_data.split(','):
                 hide_field(self.fields[field_name])
+        #   Disable the category field if editing
+        if form_type == 'edit':
+            self.fields['category'].widget.attrs['disabled'] = True
 
         tag_data = Tag.getProgramTag('teacherreg_default_min_grade', prog)
         if tag_data:
