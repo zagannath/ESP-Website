@@ -41,7 +41,7 @@ class UserRegForm(forms.Form):
     first_name = forms.CharField(max_length=30)
     last_name  = forms.CharField(max_length=30)
 
-    username = forms.CharField(help_text="At least 5 characters, must contain only alphanumeric characters.",
+    username = forms.CharField(help_text="At least 6 characters, must contain only alphanumeric characters.",
                                min_length=5, max_length=30)
 
 
