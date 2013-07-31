@@ -23,13 +23,10 @@
 
 #catalog td {
    font-family: serif;
+   padding: 5px;
    font-size: 14px;
    background-color: #ffffff;
    color: #000;
-}
-
-#catalog td.info {
-    padding: 5px;
 }
 
 .doclist {
@@ -76,15 +73,6 @@ p.category {
    text-align: left;
 }
 
-.add_class td {
-   text-align: center;
-   vertical-align: top;
-   color: #bccaf5;
-   background-color: #00003C;
-   padding: 0px;
-   margin: 0px;
-}
-
 #divmaintext h1 {
   font-size: 22pt;
   color: black;
@@ -120,31 +108,4 @@ input.button:hover {
 
 img.LaTeX {
     vertical-align: middle;
-}
-
-input.addbutton {
-    background-color: #c6def7;
-    color: #000000;
-    border: 0px solid black;
-    font-weight: bold;
-    font-size: 0.9em;
-    padding: 3px;
-    width: 100%;
-    font-family: Helvetica, Arial, sans-serif;
-}
-
-input.addbutton:hover {
-    background-color: #333399;
-    color: #c6def7;
-}
-
-input.addbutton_disabled {
-    color: #ffffff;
-    background-color: #ed1c24;
-    border: 0px solid black;
-    font-weight: bold;
-    font-size: 0.9em;
-    padding: 3px;
-    width: 100%;
-    font-family: Helvetica, Arial, sans-serif;
 }

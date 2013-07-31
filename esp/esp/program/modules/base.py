@@ -156,7 +156,7 @@ class ProgramModuleObj(models.Model):
         return render_to_response("myesp/mainpage.html", context)
             
     #   This function caches the customized (augmented) program module objects
-    @cache_function
+    #@cache_function
     def findModuleObject(tl, call_txt, prog):
         modules = ProgramModule.objects.filter(main_call = call_txt, module_type = tl).select_related()[:1]
 
@@ -176,13 +176,13 @@ class ProgramModuleObj(models.Model):
         return ProgramModuleObj.getFromProgModule(prog, module)
     #   Invalidate cache when any program module related data is saved
     #   Technically this should include the options (StudentClassRegModuleInfo, etc.)
-    findModuleObject.depend_on_model(lambda: ProgramModule)
-    findModuleObject.depend_on_model(lambda: ProgramModuleObj)
+    #findModuleObject.depend_on_model(lambda: ProgramModule)
+    #findModuleObject.depend_on_model(lambda: ProgramModuleObj)
     findModuleObject = staticmethod(findModuleObject)
     
     #   The list of modules in a particular category (student reg, teacher reg)
     #   is accessed frequently and should be cached.
-    @cache_function
+    #@cache_function
     def findCategoryModules(self, include_optional):
         prog = self.program
         module_type = self.module.module_type
@@ -198,8 +198,8 @@ class ProgramModuleObj(models.Model):
             
         return result_modules
         
-    findCategoryModules.depend_on_model(lambda: ProgramModule)
-    findCategoryModules.depend_on_model(lambda: ProgramModuleObj)
+    #findCategoryModules.depend_on_model(lambda: ProgramModule)
+    #findCategoryModules.depend_on_model(lambda: ProgramModuleObj)
     
     @staticmethod
     def findModule(request, tl, one, two, call_txt, extra, prog):
@@ -320,13 +320,13 @@ class ProgramModuleObj(models.Model):
         return canView
 
     # important functions for hooks...
-    @cache_function
+    #@cache_function
     def get_full_path(self):
         str_array = self.program.anchor.tree_encode()
         url = '/'+self.module.module_type \
               +'/'+'/'.join(str_array[-2:])+'/'+self.module.main_call
         return url
-    get_full_path.depend_on_row(lambda: ProgramModuleObj, 'self')
+    #get_full_path.depend_on_row(lambda: ProgramModuleObj, 'self')
 
     @classmethod
     def get_summary_path(cls, function):
