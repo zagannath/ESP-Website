@@ -4,6 +4,7 @@ import sys
 import os
 import datetime
 import traceback
+import subprocess
 
 if __name__ == '__main__':
     cur_file = os.path.abspath(__file__)
@@ -19,6 +20,8 @@ from esp.users.models import ESPUser
 
 import socket
 
+last_failed = None
+
 def return_(val, conn):
     """ Return the specified return value in the appropriate format """
     if val == True:
@@ -30,6 +33,18 @@ def return_(val, conn):
     else:
         conn.send(val)
         conn.close()
+
+def notify_admins(instance, msg):
+    print "> notify_admins:"
+    print msg,
+    rcpts = ['adehnert']
+    try:
+        cmd = "true zwrite -d -c esp-spew -i".split(' ') + ["socket_auth."+instance] + rcpts
+        zwrite = subprocess.Popen(cmd, stdin=subprocess.PIPE, )
+        zwrite.communicate(msg)
+    except Exception:
+        print "Exception in notify_admins:"
+        traceback.print_exc()
 
 socket_path = sys.argv[1]
 
@@ -48,7 +63,10 @@ def server(socket_path):
                 funcs[func](conn, *args)
             else:
                 return_('ERROR_Unknown_Action', conn=conn, )
+        except KeyboardInterrupt:
+            raise
         except Exception:
+            notify_admins('exception', "Exception encountered.\n")
             traceback.print_exc()
 
 def user_exists(conn, username, *args):
@@ -58,17 +76,30 @@ def user_exists(conn, username, *args):
         return_(False, conn=conn, )
 
 def authenticate(conn, username, password, *args):
+    global last_failed
     from django.contrib.auth import authenticate
     print ">> Running (authenticate '%s' '[redacted]')" % (username, )
     user = authenticate(username=username, password=password)
     if user is None:
-        print "> Result: %s" % (user, )
+        print "> Result: [failed]  %s" % (user, )
     else:
-        print "> Result: '%s' ('%s')" % (user, user.__dict__, )
+        print "> Result: [success] '%s' ('%s')" % (user, user.__dict__, )
 
     if user:
+        if last_failed:
+            notify_admins("auth.success", "Successfully authenticated '%s'.\nLast failure: '%s' at %s (type: %s)\n" % (username, last_failed['user'], str(last_failed['time']), last_failed['type']))
+            last_failed = None
         return_(True, conn=conn,)
     else:
+        msg = "Failed to authenticate '%s'\n" % username
+        if last_failed:
+            msg += "Last failure: '%s' at %s (type: %s)\n" % (last_failed['user'], str(last_failed['time']), last_failed['type'])
+        last_failed = {
+            'user': username,
+            'time': datetime.datetime.now(),
+            'type': 'auth-fail',
+        }
+        notify_admins("auth.fail", msg)
         return_(False, conn=conn,)
 
 def check_userbit(conn, username, qnode, vnode, *args):
