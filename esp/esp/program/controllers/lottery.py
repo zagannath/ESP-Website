@@ -452,7 +452,7 @@ class LotteryAssignmentController(object):
 
         # Compute the overall utility of the current run.
         # 1. Each student has a utility of sqrt(#hours of interested + 1.5 #hours of priority).
-        # This measures how happy the student will be with there classes
+        # This measures how happy the student will be with their classes
         # 2. Each student gets a weight of sqrt(# classes regged for)
         # This measures how much responsibility we take if the student gets a
         # bad schedule (we care less if students regged for less classes).

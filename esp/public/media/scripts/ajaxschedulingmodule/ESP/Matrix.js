@@ -117,6 +117,11 @@ ESP.declare('ESP.Scheduling.Widgets.Matrix', Class.create({
             //Some checking
             var block_status;
             for (var i = 0; i < data.blocks.length; i++) {
+		if (!data.blocks[i]) {
+		    console.log("Undefined block");
+		    console.log(data.blocks[i]);
+		    return;
+		}
                 if (!((block_status = ESP.Scheduling.validate_block_assignment(data.blocks[i], data.section, true)) == "OK")) {
                     console.log("Error:  Conflict when adding block " + data.blocks[i].room.text + " (" + data.blocks[i].time.text + ") to section " + data.section.code + ": [" + block_status + "]");
                 }

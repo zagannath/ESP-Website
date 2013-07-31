@@ -380,6 +380,9 @@ ESP.Scheduling = function(){
     }
 
     var validate_block_assignment = function(block, section, str_err) {
+	if (block == null) {
+	    return false;
+	}
         // check status
         if (block.status != ESP.Scheduling.Resources.BlockStatus.AVAILABLE) {
             // console.log("Room " + block.room + " at " + block.time + " is not available"); 
