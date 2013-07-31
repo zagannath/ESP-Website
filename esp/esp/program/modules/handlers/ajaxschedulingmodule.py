@@ -437,6 +437,8 @@ class AJAXSchedulingModule(ProgramModuleObj):
         print lock_level
             
         affected_sections = ClassSection.objects.filter(parent_class__parent_program=prog, resourceassignment__lock_level__lte=lock_level)
+        for section in affected_sections:
+            section.meeting_times.clear()
         num_affected_sections = affected_sections.distinct().count()
         ResourceAssignment.objects.filter(target__in=affected_sections, lock_level__lte=lock_level).delete()
         
