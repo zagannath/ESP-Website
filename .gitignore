@@ -8,3 +8,7 @@ esp/public/media/email_images/*
 esp/public/media/uploaded/bio_pictures/*
 esp/file_cache/*
 esp/file_db/*
+.gitignore
+git/*
+scripts/*
+esp/public/media/uploaded/*
