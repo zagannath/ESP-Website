@@ -73,6 +73,9 @@ class StudentLunchSelectionForm(forms.Form):
         for section in self.user.getEnrolledSections(self.program):
             if section.parent_class.category.category == 'Lunch':
                 if section.get_meeting_times()[0].start.day == self.day.day:
+                    result = section.cannotRemove(self.user)
+                    if result and int(self.cleaned_data['timeslot']) == -1:
+                        raise ESPError(False), result
                     section.unpreregister_student(self.user)
         
         #   Attempt to sign up for a new lunch period if specified
@@ -150,3 +153,5 @@ class StudentLunchSelection(ProgramModuleObj):
         
         return render_to_response(self.baseDir()+'select_lunch.html', context)
     
+    class Meta:
+        abstract = True

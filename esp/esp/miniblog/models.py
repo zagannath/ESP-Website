@@ -45,16 +45,19 @@ import datetime
 # Create your models here.
 
 class AnnouncementLink(models.Model):
-    anchor = AjaxForeignKey(DataTree)
-    title = models.CharField(max_length=256) 
-    category = models.CharField(max_length=32) # Plaintext
+    anchor = AjaxForeignKey(DataTree, help_text="Select Q/Web")
+    title = models.CharField(max_length=256, help_text="The text of the announcement") 
+    category = models.CharField(max_length=32, blank=True, help_text="The category of the announcement (appears above the announcement itself)") # Plaintext
     timestamp = models.DateTimeField(default=datetime.datetime.now, editable=False)
     highlight_expire = models.DateTimeField(blank=True,null=True, help_text="When this should stop being showcased.")
     section = models.CharField(max_length=32,blank=True,null=True, help_text="e.g. 'teach' or 'learn' or blank")
-    href = models.URLField(help_text="The URL the link should point to.")
+    href = models.URLField(help_text="The URL the link should point to. If blank, then only an announcement (without a hyperlink) will be displayed.", blank=True)
 
     def __unicode__(self):
-        return "%s (links to %s)" % (self.title, self.href)
+        if self.href:
+            return "%s (links to %s)" % (self.title, self.href)
+        else:
+            return self.title
 
     def get_absolute_url(self):
         return self.href
@@ -64,7 +67,10 @@ class AnnouncementLink(models.Model):
         return self.title
 
     def content(self):
-        return '<a href="%s">Click Here</a> for details' % self.href
+        if self.href:
+            return '<a href="%s">Click Here</a> for details' % self.href
+        else:
+            return ''
 
     @staticmethod
     def find_posts_by_perms(user, verb, qsc=None):
@@ -75,7 +81,10 @@ class AnnouncementLink(models.Model):
             return UserBit.find_by_anchor_perms(AnnouncementLink,user,verb,qsc=qsc)
 
     def html(self):
-        return '<p><a href="%s">%s</a></p>' % (self.href, self.title)
+        if self.href:
+            return '<p><a href="%s">%s</a></p>' % (self.href, self.title)
+        else:
+            return '<p>%s</p>' % self.title
 
 class Entry(models.Model):
     """ A Markdown-encoded miniblog entry """

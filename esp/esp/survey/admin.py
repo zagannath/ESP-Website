@@ -68,6 +68,8 @@ class QuestionAdmin(admin.ModelAdmin):
     list_display = ['seq', 'name', 'question_type', 'survey']
     list_display_links = ['name']
     list_filter = ['survey']
+    save_as = True
+    save_on_top = True
 admin_site.register(Question, QuestionAdmin)
 
 admin_site.register(Answer)

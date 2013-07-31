@@ -74,7 +74,7 @@ function json_fetch(components, on_complete, result_data)
         with ({component: components[i]})
         {
             $j.ajax({
-                url: program_base_url + components[i],
+                url: program_base_url + components[i] + '/',
                 success: function(new_data, text_status, jqxhr) {handle_json_response(result_data, component, data_fetch_status, new_data, text_status, jqxhr);}
             });
         }

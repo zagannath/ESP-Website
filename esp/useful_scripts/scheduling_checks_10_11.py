@@ -1,7 +1,8 @@
-from esp.program.models import Program, Class, ClassSection
+from esp.program.models import Program, ClassSection
 
-splash = Program.objects.filter(id=74)[0]
+splash = Program.objects.filter(id=75)[0]
 
+"""
 d = {}
 for cls in splash[0].classes():
      sections = ClassSection.objects.filter(parent_class=cls.id)
@@ -101,7 +102,7 @@ for cls in splash.classes():
                mt =  s.get_meeting_times()
                if lunch[0] in mt and lunch[1] in mt:
                     print s
-
+"""
 d = {}
 for cls in splash.classes():
      teachers = cls.teachers()
@@ -118,7 +119,7 @@ for cls in splash.classes():
 
 for t in d:
      print t, d[t]
-
+"""
 
 d = {}
 for cls in splash.classes():
@@ -226,3 +227,4 @@ for cls in splash[0].classes():
           if(len(rooms) != math.ceil(cls.duration) and len(rooms) > 0):
                print s
 
+"""
