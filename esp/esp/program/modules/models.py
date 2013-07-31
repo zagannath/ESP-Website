@@ -33,6 +33,7 @@ Learning Unlimited, Inc.
   Email: web-team@lists.learningu.org
 """
 
+from esp.program.modules.base import ProgramModuleObj
 from esp.program.modules.handlers import *
 from django.db.models import Q
 

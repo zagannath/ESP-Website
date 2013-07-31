@@ -218,7 +218,7 @@ class TeacherClassRegForm(FormWithRequiredCss):
             tag_data = Tag.getTag('teacherreg_label_%s' % field)
             if tag_data:
                 self.fields[field].label = tag_data
-            tag_data = Tag.getTag('teacherreg_help_text_%s' % field)
+            tag_data = Tag.getProgramTag('teacherreg_help_text_%s' % field, prog)
             if tag_data:
                 self.fields[field].help_text = tag_data
                 

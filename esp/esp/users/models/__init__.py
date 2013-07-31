@@ -1208,6 +1208,11 @@ class TeacherInfo(models.Model, CustomFormsLinkModel):
     student_id = models.CharField(max_length=128, blank=True, null=True)
     mail_reimbursement = models.NullBooleanField(blank=True, null=True)
 
+    def save(self, *args, **kwargs):
+        super(TeacherInfo, self).save(*args, **kwargs)
+        from esp.mailman import add_list_member
+        add_list_member('teachers', self.user)
+
     @classmethod
     def cf_link_instance(cls, request):
         """
