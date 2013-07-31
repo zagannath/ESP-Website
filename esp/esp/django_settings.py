@@ -80,6 +80,7 @@ INTERNAL_IPS = (
 ##################
 ADMINS = (
     ('ESP Webmasters','serverlog@esp.mit.edu'),
+    ('Adam Seering','aseering@wedge.mit.edu'),
 )
 
 
@@ -209,6 +210,8 @@ AUTH_PROFILE_MODULE='users.ESPUser_Profile'
 FORCE_SCRIPT_NAME = ''
 
 USE_MAILMAN = False
+
+USE_ETAGS = True
 
 if False:
     import logging

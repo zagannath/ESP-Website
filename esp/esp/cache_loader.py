@@ -4,6 +4,7 @@
 # whatnot for esp.cache. This is probably fine if done properly, but I'd rather
 # not have to think about that.
 
+import sys
 from django.conf import settings
 from esp.cache.registry import _finalize_caches, _lock_caches
 from esp.cache.signals import m2m_removed, m2m_added
@@ -14,6 +15,15 @@ from esp.cache.signals import m2m_removed, m2m_added
 for app_name in settings.INSTALLED_APPS:
     if app_name != 'esp.cache_loader':
         __import__(app_name, {}, {}, ['models'])
+    # HACK: Duplicate esp.foo in sys.modules as foo.
+    # This lets console users type "import program.models"
+    # As shorthand for "import esp.program.models"
+    # Safe to clobber this; it exists in main.
+    if app_name.startswith('esp.'):
+        for key, value in sys.modules.items():
+           if key.startswith(app_name):
+               #sys.stderr.write(key[4:])
+               sys.modules[key[4:]] = value
 
 
 # import esp.cache.test

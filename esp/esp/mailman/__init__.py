@@ -14,7 +14,8 @@ if USE_MAILMAN:
 else:
     MAILMAN_PASSWORD = ''
 
-MM_PATH = "/usr/sbin/"
+# Safe to clobber; this exists in mit-working
+MM_PATH = "/usr/lib/mailman/bin/"
 
 ## Functions for Mailman interop
 

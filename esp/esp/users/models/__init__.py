@@ -832,7 +832,10 @@ class ESPUser(User, AnonymousUser):
     def current_schoolyear():
         now = datetime.now()
         curyear = now.year
-        if datetime(curyear, 6, 1) > now:
+        # Changed from 6/1 to 5/1 rollover so as not to affect start of Summer HSSP registration
+        # - Michael P 5/24/2010
+        #if datetime(curyear, 6, 1) > now:
+        if datetime(curyear, 5, 1) > now:
             schoolyear = curyear
         else:
             schoolyear = curyear + 1
@@ -869,7 +872,9 @@ class ESPUser(User, AnonymousUser):
             yog        = int(yog)
         except:
             return 0
-        return schoolyear + 12 - yog
+        # Changed to have maximum of 12 due to request by HSSP directors
+        # return schoolyear + 12 - yog
+        return min(12, schoolyear + 12 - yog)
 
     @staticmethod
     def YOGFromGrade(grade):

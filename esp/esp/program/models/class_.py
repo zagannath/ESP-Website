@@ -1070,6 +1070,12 @@ class ClassSection(models.Model):
         else:
             prereg_verb = prereg_verb_base
             
+        # HACK: Force direct enrollment if the class has no application questions
+        # (behavior change requested by summer HSSP)
+        # - Michael Price 5/24/2010
+        if self.parent_class.numStudentAppQuestions() == 0 and priority == 1:
+            prereg_verb = DataTree.get_by_uri('V/Flags/Registration/Enrolled')
+
         auto_verb = DataTree.get_by_uri(prereg_verb.get_uri() + '/Automatic', create=True)
         
         if overridefull or not self.isFull():
