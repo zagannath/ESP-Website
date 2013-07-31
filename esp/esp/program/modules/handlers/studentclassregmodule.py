@@ -706,6 +706,7 @@ class StudentClassRegModule(ProgramModuleObj, module_ext.StudentClassRegModuleIn
     @disable_csrf_cookie_update
     @aux_call
     @cache_control(public=True, max_age=120)
+    @meets_deadline('/Catalog')
     def catalog(self, request, tl, one, two, module, extra, prog, timeslot=None):
         """ Check user role and maybe return the program class catalog """
         return self.catalog_render(request, tl, one, two, module, extra, prog, timeslot)
