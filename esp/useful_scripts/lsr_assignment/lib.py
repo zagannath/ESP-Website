@@ -43,7 +43,7 @@ print "Initialized program to", program
 satlunch = (552, 553)
 # no Sunday lunch for Spark
 # commented out all lines in the program that included sunlunch; for Splash, these should be uncommented
-sunlunch = tuple([int(x.id) for x in Event.objects.filter(id__in=[556,557])])
+sunlunch = tuple([int(x.id) for x in Event.objects.filter(id__in=[566,567])])
 
 # The wiggle room factor for the class capacity, to leave a space for
 # those classes that didn't fill up from priority.  Set to 10% for now.
@@ -201,6 +201,27 @@ def print_issues():
         if secs.filter(meeting_times__in=sunlunch).count() > 1:
             print ESPUser(student).name() + " (" + student.username + "), Sunday lunch conflict"
 
+
+def check_sanity():
+    for stu in program.students()['confirmed']:
+        print stu
+        d = {}
+        for t in program.getTimeSlots():
+            d[t] = []
+        for sr in StudentRegistration.objects.filter(section__parent_class__parent_program=74, relationship__name='Enrolled', user__id=stu.id):
+            for s in sr.section.get_meeting_times():
+                d[s].append(sr)
+        for t in d:
+            if len(d[t]) == 0:
+                for inter in StudentRegistration.objects.filter(section__parent_class__parent_program=74, relationship__name='Priority/1', user__id=stu.id):
+                    if not inter.section.isFull():
+                        if t in inter.section.get_meeting_times():
+                            if len(inter.section.get_meeting_times()) == 1:
+                                print t
+                                print inter.section
+                    
+            #print "no class"
+            #figure out whether there are open classes the student was interested in 
 
 ################################
 # Lottery Assignment Functions #

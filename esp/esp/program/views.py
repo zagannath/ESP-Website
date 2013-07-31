@@ -194,7 +194,7 @@ def lsr_submit(request, program = None):
     if len(errors) != 0:
         s = StringIO()
         pprint(errors, s)
-        mail_admins('Error in class reg', s.getvalue(), fail_silently=True)
+        mail_admins('Error in class reg', s.getvalue(), fail_silently=False)
 
     cfe = ConfirmationEmailController()
     cfe.send_confirmation_email(request.user, program)
