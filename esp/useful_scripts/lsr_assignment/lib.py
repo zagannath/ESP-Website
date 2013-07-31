@@ -187,6 +187,8 @@ def print_issues():
         lunch_count = 0
         secs = ESPUser(student).getEnrolledSectionsFromProgram(program)
         for sec in secs:
+            if sec.parent_class.category.symbol == 'W':
+                print student, sec
             if satlunch in sec.get_meeting_times():
                 lunch_count += 1
                 if lunch_count > 1:
@@ -207,7 +209,6 @@ def check_conflicting_classes(remove):
             for mt in sec.meeting_times.all():
                 if int(mt.id) in my_tsdict and not my_tsdict[mt.id] == None and not my_tsdict[mt.id] == sec:
                     otherSec = my_tsdict[mt.id]
-                    problem_count = problem_count + 1
                     print ESPUser(student).name() + " (" + student.username + "), conflict: " + sec.emailcode() + ", " + my_tsdict[mt.id].emailcode()
                     if remove:
                         choose_class_and_remove_student(sec, otherSec, my_tsdict, student)
@@ -244,9 +245,9 @@ def choose_class_and_remove_student(sec, otherSec, my_tsdict, student):
 def remove_students_in_conflicting_classes():
     check_conflicting_classes(True)
 
+#returns timeslots where a student is enrolled but has an available interested choice
 def check_sanity():
     for stu in program.students()['confirmed']:
-        print stu
         d = {}
         for t in program.getTimeSlots():
             d[t] = []
@@ -254,16 +255,23 @@ def check_sanity():
             for s in sr.section.get_meeting_times():
                 d[s].append(sr)
         for t in d:
+            #If the student has no classes this block
             if len(d[t]) == 0:
-                for inter in StudentRegistration.objects.filter(section__parent_class__parent_program=74, relationship__name='Priority/1', user__id=stu.id):
-                    if not inter.section.isFull():
-                        if t in inter.section.get_meeting_times():
-                            if len(inter.section.get_meeting_times()) == 1:
-                                print t
-                                print inter.section
+                #check each class that the student was interested in to see if we can enroll them
+                for inter in StudentRegistration.objects.filter(section__parent_class__parent_program=74, relationship__name=interested_type, user__id=stu.id):
+                    if inter.section.isFull():
+                        continue
+                    #if the student is taking another section of the class, skip
+                    if StudentRegistration.objects.filter(section__parent_class=inter.section.parent_class, relationship__name=enrolled_type, user__id=stu.id).count() == 0:
+                        continue
+                    # if the class has been canceled, skip
+                    if inter.section.parent_class.status > -20:
+                        continue
+                    if t in inter.section.get_meeting_times():
+                            #if len(inter.section.get_meeting_times())==1:
+                            print stu, t, inter.section
+                            print inter.section.parent_class.status
                     
-            #print "no class"
-            #figure out whether there are open classes the student was interested in 
 
 ################################
 # Lottery Assignment Functions #
@@ -356,13 +364,36 @@ def assign_priorities():
     print_issues()
 
 
-def screwed_sweep_p1_printout(fd=None):
-    screwed_sweep_by_type(priority_type, fd)
 
 def screwed_sweep_interested_printout(fd=None):
-    screwed_sweep_by_type(interested_type, fd)
+    """
+    Print out the absolute number of classes that each student got, of the interested
+    classes that they marked, in increasing order
+    Also print out, for easy reference, the number of priority classes they
+    got out of the total chosen.
+    """
+    if fd is None: fd = sys.stdout
 
-def screwed_sweep_by_type(reg_type, fd=None):
+    def classes_cnt(user):
+        classescnt = StudentRegistration.valid_objects().filter(section__parent_class__parent_program=program, user=user, relationship__name=enrolled_type).values('section').distinct().count()
+        pcnt = StudentRegistration.valid_objects().filter(section__parent_class__parent_program=program, user=user, relationship__name=interested_type).values('section').distinct().count()
+        return (classescnt, pcnt)
+
+    def classes_count(user):
+        counts = classes_cnt(user)
+        return counts[0]
+
+    users = sorted(program.students()['enrolled'], key=classes_count)
+    print len(users)
+    fd.write("Full name,Username,% classes gotten,# received,# applied\n")
+    for user in users:
+        classes = classes_cnt(user)[0]
+        interesteds = classes_cnt(user)[1]
+        if classes < 10 and interesteds > 20:
+            output = "%s,%s,%d,%d\n" % (user.name(), user.username, classes_cnt(user)[0], classes_cnt(user)[1])
+            fd.write(output.encode('utf-8'))
+
+def screwed_sweep_p1_printout(fd=None):
     """
     Print out the percentage that each student got, of the priority
     classes that they marked, in order of increasing percentage.
@@ -373,7 +404,7 @@ def screwed_sweep_by_type(reg_type, fd=None):
 
     def classes_cnt(user):
         classescnt = StudentRegistration.valid_objects().filter(section__parent_class__parent_program=program, user=user, relationship__name=enrolled_type).values('section').distinct().count()
-        pcnt = StudentRegistration.valid_objects().filter(section__parent_class__parent_program=program, user=user, relationship__name=reg_type).values('section').distinct().count()
+        pcnt = StudentRegistration.valid_objects().filter(section__parent_class__parent_program=program, user=user, relationship__name=priority_type).values('section').distinct().count()
         return (classescnt, pcnt)
 
     def pclasses_pct(user):

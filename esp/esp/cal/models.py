@@ -135,7 +135,7 @@ class Event(models.Model):
         """ this method will return a list of new collapsed events """
         from copy import copy
         sortedList = copy(eventList)
-        sortedList.sort()
+#        sortedList.sort()
 
         for i in range(1,len(sortedList)):
             if (sortedList[i-1].end+tol) >= sortedList[i].start:

@@ -193,12 +193,12 @@ class OnSiteClassList(ProgramModuleObj):
                 endtime = endtime[0]
                 classes = self.program.sections().annotate(begin_time=Min("meeting_times__start")).filter(
                     status=10, parent_class__status=10,
-                    begin_time__gte=curtime.start, begin_time__lte=endtime.start
+                    begin_time__gte=curtime.start, begin_time__lte=endtime.start,
                     )
             else:
                  classes = self.program.sections().annotate(begin_time=Min("meeting_times__start")).filter(
                      status=10, parent_class__status=10,
-                     begin_time__gte=curtime.start
+                     begin_time__gte=curtime.start,
                      )
             if extra == 'unsorted':
                 classes = classes.order_by('begin_time', 'id').distinct()

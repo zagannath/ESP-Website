@@ -373,7 +373,7 @@ StudentRegInterface = Ext.extend(Ext.TabPanel, {
                     fn: function(button) {
                         if (button == 'ok') 
                         {
-                            window.open('/learn/'+url_base+'/confirmreg','_blank');
+                            // window.open('/learn/'+url_base+'/confirmreg','_blank');
                             window.location.href = '/learn/'+url_base+'/studentreg';
                         }
                     }
