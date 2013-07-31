@@ -1471,7 +1471,9 @@ class ClassSubject(models.Model):
         if timeslot is not None:
             sections = [self.get_section(timeslot)]
         else:
+            assert not isinstance(self.get_sections, list), "self.get_sections can't be a list!: %s" % self.get_sections            
             sections = self.get_sections()
+            print sections
         for s in sections:
             if not s.isFull(use_cache=use_cache):
                 return False

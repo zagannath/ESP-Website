@@ -63,6 +63,7 @@ try:
                 message['Bcc'] = ARCHIVE
 
             send_mail(str(message))
+            sys.exit(0)
         
         del(message['to'])
         del(message['cc'])

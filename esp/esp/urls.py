@@ -53,7 +53,9 @@ urlpatterns += patterns('',
 
 urlpatterns += patterns('esp.shortterm.views',
                         (r'^school_response/$', 'school_response_form'),
-                        (r'^survey_results/$', 'excel_survey_responses'))
+                        (r'^survey_results/$', 'excel_survey_responses'),
+                        (r'^logistics_quiz_check/$', 'logistics_quiz_check'),
+                        )
 
 urlpatterns += patterns('esp.web.views',
                         (r'^$', 'index',{'template':'splash.html'}), # index
