@@ -4,12 +4,13 @@
 <tr><th>Steps for Registration</th><th>Done?</th></tr>
 {% for module in modules %}
 {% if module.isStep %}
+{% if not module.useTemplate %}{% comment %} TAKE THIS OUT AFTER SPLASH 2011 LOTTERY STUDENT REG - jmoldow 10/26/2011 {% endcomment %}
 <tr>
-<td>{% if module.useTemplate %}
+<td>{% if module.useTemplate %}{% comment %}
 <a href="#module-{{ module.id }}" title="{{ module.module.link_title }}">
     {{ module.module.link_title }} 
     </a> <em>(below)</em>
-{% else %}
+{% endcomment %}{% else %}
     {% autoescape off %}{{ module.makeLink }}{% endautoescape %}
 {% endif %}
 {% if module.required_label %}<em>{{ module.required_label }}</em>{% else %}
@@ -28,7 +29,7 @@
 </a>
 {% endwith %}
 </td>
-</tr>
+</tr>{% endif %}{% comment %} TAKE THIS OUT AFTER SPLASH 2011 LOTTERY STUDENT REG - jmoldow 10/26/2011 {% endcomment %}
 {% endif %}
 {% endfor %}
 {% inline_qsd_block program.anchor "learn:extra_steps" request.user %}<tr><td></td><td></td></tr>{% end_inline_qsd_block %}

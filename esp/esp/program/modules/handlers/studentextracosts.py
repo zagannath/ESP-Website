@@ -43,6 +43,7 @@ from esp.datatree.sql.query_utils import QTree
 from django.template.loader import get_template
 from esp.program.models  import StudentApplication
 from django              import forms
+from django.http import HttpResponseRedirect
 from django.contrib.auth.models import User
 from esp.accounting_docs.models import Document
 from esp.accounting_core.models import LineItem, LineItemType
@@ -209,7 +210,8 @@ class StudentExtraCosts(ProgramModuleObj):
                 else:
                     doc.txn.lineitem_set.filter(li_type=i['LineItemType']).delete()
 
-            return self.goToCore(tl)
+            #   return self.goToCore(tl)
+            return HttpResponseRedirect("/%s/%s/%s/confirmreg" % (tl, one, two))
 
         checked_ids = set( [ x.li_type_id for x in doc.txn.lineitem_set.all() ] )
         li = None  ## Ugly hack, left as an exercise to the reader
