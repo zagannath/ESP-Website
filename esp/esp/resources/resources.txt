@@ -1,0 +1,43 @@
+Resource types
+- classrooms
+- equipment (projector, box of chalk)
+- furnishing
+- consumable, non-consumable (not usable yet)
+- distance function - completely unused
+- only one - if True and ResourceRequestFormSet.static_resource_requests, makeaclass form only lets you choose one of the possible choices - seems to be independent of actual Resources
+- choices - uses survey's ListField
+- program - can be null, for global
+- autocreated - probably useless
+
+Resource groups
+- classroom + chalkboards
+- example: group_id 32618, classroom + LCD projector + Classroom space (Resource type with multiple values that aren't represented as their own resources / resource types) + chalkboard + moveable tables
+- not any m2m or foreign key relationship
+- matching integers on resource objects
+- This is used only for classroom furnishings
+
+Resource requests (usually just a filter on resource type)
+- foreign key to both section and subject
+- foreign key to filtered resource type
+- desired value - from ResourceType.choices
+
+Resource assignments (resource + event) (but actually, resource + class section)
+- foreign key to both section and subject
+- lock level (for autoscheduler)
+
+program resources module
+
+static resource requests - what is this? - it is string, should probably be Boolean (not using getBooleanTag)
+
+Resource
+- num students - only used for classrooms
+- group id - see above
+- user - usually None, only used for teacher availability (now deprecated, not used in resources app)
+- is unique - only used for resources pointing to the original, global resource types, and for things with group_id==-1 - not used in code
+- event - gives availability for resource - one resource per timeslot - no direct foreign key to program - get from res_type, and from anchor of event
+- identical_resources() - based on name alone, no relationship between them
+- classrooms are special case, some fields used only for classrooms, many functions expect to be called on classrooms
+- when checking that a class's resource requests are satisfied, only considers furnishings of the assigned room. additional assigned resources (which we don't use anyway) aren't counted
+- can assign multiple rooms, but only the first is used in many instances
+
+Uses old custom cache, possibly?
