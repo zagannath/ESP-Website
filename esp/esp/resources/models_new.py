@@ -119,16 +119,6 @@ class Furnishing(HistoryPreservingModel):
   location = models.ForeignKey(Location)
   amount = models.IntegerField()
 
-class FloatingFurnishing(HistoryPreservingModel):
-  """
-  An assignment of a floating resource to a Location for some set of Events.
-  """
-  resource = models.ForeignKey(Resource)
-  location = models.ForeignKey(Location)
-  meeting_times = models.ManyToManyField(Event)
-  ignore_warnings = models.BooleanField()
-  lock_level = models.IntegerField() # for autoscheduler
-
 class ResourceAssignment(HistoryPreservingModel):
   """
   An assignment of a ClassSection to a Location and an Event, with Resources.
