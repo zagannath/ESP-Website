@@ -49,7 +49,7 @@ import pickle
 
 
 @reversion # Keep all previous versions of all objects, along with who made changes and when.
-class HistoryPreservingModel(models.Model) # All resource models will inherit from here, i.e. all models below have these properties.
+class HistoryPreservingModel(models.Model): # All resource models will inherit from here, i.e. all models below have these properties.
   is_active = models.BooleanField(default=True, help_text='Instead of deleting an object, set this to False. That way we retain access to old data and histories. Only objects with is_active=True will be used in views.')
   class Meta:
     abstract = True
