@@ -27,6 +27,8 @@ class AbstractResource(HistoryPreservingModel):
   is_reusable = models.BooleanField(default=False, help_text="Can this resource be assigned more than once, or will its use in a class destroy it (such as a food item)? This defaults to True (can be reused), with the possibility of it being False (can't be reused, its use destroys it).")
   is_requestable = models.BooleanField()
   description = models.TextField(blank=True, default='', help_text='A description of the abstract resource to be viewable by admins and teachers.')
+  furnishings = generic.GenericRelation(Furnishing, content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the furnishings of this AbstractResource.')
+  requests = generic.GenericRelation(ResourceRequest, content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the requests for this AbstractResource.')
 
 class ResourceType(HistoryPreservingModel):
   """
@@ -44,6 +46,8 @@ class ResourceType(HistoryPreservingModel):
   is_requestable = models.BooleanField()
   is_substitutable = models.BooleanField(default=False, help_text="Can descendants be safely substituted for one another in most cases? For example, projectors can be substitutable, but A/V can't be.")
   description = models.TextField(blank=True, default='', help_text='A description of the resource type to be viewable by admins and teachers.')
+  furnishings = generic.GenericRelation(Furnishing, content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the furnishings of this ResourceType.')
+  requests = generic.GenericRelation(ResourceRequest, content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the requests for this ResourceType.')
 
 class Location(HistoryPreservingModel):
   """
