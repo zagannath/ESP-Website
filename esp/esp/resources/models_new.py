@@ -96,13 +96,13 @@ class Area(HistoryPreservingModel):
   name = models.CharField()
   display_template = models.CharField(default='%(area)s %(location)s') # Some string template that includes %(location)s and, optionally, %(area)s. Applied to all Locations in the area for their __unicode__ method. See Location.__unicode__()
   adjacent_areas = models.ManyToMany(symmetric=True) # Other sets of Locations that are also sufficiently close together for scheduling purposes, e.g. adjacent buildings.
-  latitude = models.DecimalField()
-  longitude = models.DecimalField()
-  map_pixel_x = models.IntegerField()
-  map_pixel_y = models.IntegerField()
+  latitude = models.DecimalField(null=True, help_text='The latitude of the area, for lookup on an external map service.')
+  longitude = models.DecimalField(null=True, help_text='The longitude of the area, for lookup on an external map service.')
+  map_pixel_x = models.IntegerField(null=True, help_text='The x-coordinate pixel of this area on a campus map.')
+  map_pixel_y = models.IntegerField(null=True, help_text='The y-coordinate pixel of this area on a campus map.')
   description = models.TextField(blank=True, default='', help_text='A description of the area to be viewable by anyone.')
   is_requestable = models.BooleanField()
-  url = models.URLField()
+  url = models.URLField(blank=True, help_text="The url to a campus-specific mapping website (e.g. whereis.mit.edu?go=2), or to the area's website.")
   admins = models.ForeignKey(AreaAdministrativeGroup, null=True, help_text='The group that administrates this area and controls its usage.')
 
   def __unicode__(self):
@@ -132,14 +132,40 @@ class FloatingFurnishing(HistoryPreservingModel):
 class ResourceAssignment(HistoryPreservingModel):
   """
   An assignment of a ClassSection to a Location and an Event, with Resources.
+
+  A ResourceAssignment is needed for every (section, location, meeting_time)-tuple.
+  This is equivalent to before (where sections were
+  assigned to multiple (locations, meeting_time)-tuples), but is much clearer
+  since the locations and meeting_times are now separate, stand-alone objects
+  and are both represented explicitly in the assignment object. This does have
+  the downside of requiring multiple ResourceAssignment objects for multi-block
+  classes, and needing to update multiple objects when moving a class to a new
+  time or room. But this is not a regression from previous behavior. In fact,
+  this should be easier to work with, since you just need to update the
+  ResourceAssignment objects by swapping the location and/or meeting_time,
+  rather than needing to search for the correct (location, meeting_time)-pair and
+  assigning that. For whatever hastle will still remain, I think the scheduling
+  flexibility is worth it.
+
+  Floating resources are assigned here too, rather than being separate. This
+  gives the flexibility of being able to assign resources at a granular level.
+  It will require care, to make sure that floating resources are assigned to
+  all meeting_times where they are needed (which will usually be all of them).
+  The to-be-provided methods for rescheduling a class will, by default, carry
+  over the floating resources with them, but they can be dropped if the mover
+  specifies that they should (perhaps because the new room has that resource
+  built-in, or because that resource is not available in the new timeblock).
+  Constraints checking will warn if resources are double-booked, assigned when
+  not available, or different across time blocks (just in case it isn't
+  intentional, in which case ignore_warnings can be set to True).
   """
   resource = models.ManyToManyFields(Resource)
   location = models.ForeignKey(Location, help_text='The location of the class.')
   section = models.ForeignKey(ClassSection)
-  meeting_time = models.ForeignKey(Event)
+  meeting_time = models.ForeignKey(Event) # Replaces the meeting_times m2m field on ClassSection.
   # unique (resource, location, section) if is_active
   lock_level = models.IntegerField() # for autoscheduler
-  ignore_warnings = models.BooleanField()
+  ignore_warnings = models.BooleanField(default=False, help_text='If True, ignore warnings that would normally be generated from this assignment breaking constraints, such as scheduling two classes in the same classroom, if this broken constraint is deliberate.')
   meeting_point = models.ForeignKey(Location, null=True, help_text='The meeting point for teachers and students to gather at the beginning of class, before walking to the actual class location.')
   hide_location_from_students = models.BooleanField(default=False, help_true='Set this equal to True if the students should only be shown the meeting point, and not the location.')
   instructions = models.TextField(default='', help_text='For teachers (and students, if there is a meeting point and hide_location_from_students is False) to see, instructions for getting from the meeting point to the actual location, and any other important information.')
