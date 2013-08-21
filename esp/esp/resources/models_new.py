@@ -30,33 +30,20 @@ class AbstractResource(HistoryPreservingModel):
 
 class ResourceType(HistoryPreservingModel):
   """
-  Represents a type of resource, e.g. Linux computer, Mac adapter, chalkboard, etc.
-  Distinct AbstractResources in the same ResourceType are similar and can potentially serve as substitutes, but are not identical.
+  Represents a type of resources, e.g. computers, A/V, boards, etc.
+  Resources descended from the same ResourceType have something in common, but are not necessarily substitutes.
+  A ResourceType may, but is not required to, be a member of a parent ResourceType.
+  In this way, ResourceTypes form a forest with an arbitrary number of trees / roots.
+  The trees will never be very tall, and probably not very wide, so this does not pose the problems that the DataTree has.
   All resource types exist globally for use by all programs.
   """
-  family = models.ForeignKey(ResourceFamily, null=True)
+  parent = models.ForeignKey(ResourceType, null=True)
   name = models.CharField()
   # unique (resource_type, name) when is_active
+  is_reusable = models.BooleanField(default=False, help_text="Can this resource be assigned more than once, or will its use in a class destroy it (such as a food item)? This defaults to True (can be reused), with the possibility of it being False (can't be reused, its use destroys it).")
   is_requestable = models.BooleanField()
-  # if not family, then is_requestable
+  is_substitutable = models.BooleanField(default=False, help_text="Can descendants be safely substituted for one another in most cases? For example, projectors can be substitutable, but A/V can't be.")
   description = models.TextField(blank=True, default='', help_text='A description of the resource type to be viewable by admins and teachers.')
-
-class ResourceFamily(HistoryPreservingModel):
-  """
-  Represents a family of resources, e.g. computers, A/V, boards, etc.
-  Resources descended from the same ResourceFamily have something in common, but are not necessarily substitutes.
-  A ResourceType may, but is not required to, be a member of a ResourceFamily.
-  A ResourceFamily may, but is not required to, be a member of a parent ResourceFamily.
-  In this way, ResourceFamilies + ResourceTypes form a forest, with ResourceTypes as the leaves and with an arbitrary number of trees / roots.
-  The trees will never be very tall, and probably not very wide, so this does not pose the problems that the DataTree has.
-  All resource families exist globally for use by all programs.
-  """
-  parent = models.ForeignKey(ResourceFamily, null=True)
-  name = models.CharField()
-  # unique (resource_type, name) when is_active
-  is_requestable = models.BooleanField()
-  # if not family, then is_requestable
-  description = models.TextField(blank=True, default='', help_text='A description of the resource family to be viewable by admins and teachers.')
 
 class Location(HistoryPreservingModel):
   """
@@ -68,7 +55,7 @@ class Location(HistoryPreservingModel):
   # unique (area, name)
   display_template_override = models.CharField(blank=True, default='') # Some string template that includes %(location)s and, optionally, %(area)s; or the empty string. If not empty, overrides area.display_template.
   capacity = models.IntegerField()
-  furnishings = property() # AbstractResources, ResourceTypes, and ResourceFamilies
+  furnishings = property() # All AbstractResources, ResourceTypes that appear with this Location in the Furnishings table.
   availability = models.ManyToManyField(Event)
   description = models.TextField(blank=True, default='', help_text='A description of the location to be viewable by admins, teachers, volunteers, and students.')
   is_requestable = models.BooleanField()
@@ -112,10 +99,15 @@ class Furnishing(HistoryPreservingModel):
   """
   A permanent, fixed resource in a Location.
   Global for all programs.
-  Can be an AbstractResource, a ResourceType, or a ResourceFamily, depending on the level of detail that is cared about.
+  Can be an AbstractResource or a ResourceType, depending on the level of detail that is cared about.
   """
   description = models.TextField(blank=True, default='', help_text='A description of the furnishing to be viewable by admins and teachers.')
-  resource = models.ForeignKey(ContentType, choices=(AbstractResource,ResourceType,ResourceFamily))
+
+  # The following three combine into one field.
+  resource_content_type = models.ForeignKey(ContentType, choices=(AbstractResource,ResourceType))
+  resource_object_id = models.PositiveIntegerField()
+  resource = generic.GenericForeignKey('resource_content_type', 'resource_object_id', help_text='The furnished resource.')
+
   location = models.ForeignKey(Location)
   amount = models.IntegerField()
 
@@ -163,10 +155,14 @@ class ResourceAssignment(HistoryPreservingModel):
 class ResourceRequest(HistoryPreservingModel):
   """
   A request for a ClassSubject (all of its ClassSections) to be assigned a resource.
-  Can be either an AbstractResource, ResourceType, or ResourceFamily, depending on the allowed and needed level of detail
+  Can be either an AbstractResource or ResourceType, depending on the allowed and needed level of detail
   (the model object requested must have is_requestable == True).
   """
-  resource = models.ForeignKey(ContentType, choices=(AbstractResource,ResourceType,ResourceFamily where is_requestable==True))
+  # The following three combine into one field.
+  resource_content_type = models.ForeignKey(ContentType, choices=(AbstractResource,ResourceType))
+  resource_object_id = models.PositiveIntegerField()
+  resource = generic.GenericForeignKey('resource_content_type', 'resource_object_id', null=True, help_text='The requested resource.') # Target must have is_requestable==True. null if the resource doesn't exist in our system yet; should be described in "description"
+
   subject = models.ForeignKey(ClassSubject)
   amount = models.IntegerField(null=True)
   pcnt_of_capacity = models.IntegerField(null=True)
