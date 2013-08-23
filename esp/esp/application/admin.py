@@ -39,6 +39,7 @@ from esp.admin import admin_site
 
 from esp.program.models import ClassSubject
 from esp.formstack.objects import get_forms_for_api_key, get_form_by_id
+from esp.formstack.api import APIError
 from esp.application.models import FormstackAppSettings, FormstackStudentProgramApp, FormstackStudentClassApp
 
 class FormstackAppSettingsAdmin(admin.ModelAdmin):
@@ -56,7 +57,11 @@ class FormstackAppSettingsAdmin(admin.ModelAdmin):
         if fsas.api_key == '':
             return ''
         lines = []
-        for form in get_forms_for_api_key(fsas.api_key):
+        try:
+            forms = get_forms_for_api_key(fsas.api_key)
+        except APIError as e:
+            return str(e)
+        for form in forms:
             line = '{0}: {1}'.format(form.id, form.name)
             lines.append(line)
         return '<br />'.join(map(html.escape, lines))
@@ -66,8 +71,12 @@ class FormstackAppSettingsAdmin(admin.ModelAdmin):
         if fsas.api_key == '' or fsas.form_id is None:
             return ''
         lines = []
-        form = get_form_by_id(fsas.form_id, fsas.api_key)
-        for field in form.field_info():
+        try:
+            form = get_form_by_id(fsas.form_id, fsas.api_key)
+            field_info = form.field_info()
+        except APIError as e:
+            return str(e)
+        for field in field_info:
             if field['label']:
                 line = '{0}: {1}'.format(field['id'], field['label'])
                 lines.append(line)
@@ -78,8 +87,12 @@ class FormstackAppSettingsAdmin(admin.ModelAdmin):
         if fsas.api_key == '' or fsas.finaid_form_id is None:
             return ''
         lines = []
-        form = get_form_by_id(fsas.finaid_form_id, fsas.api_key)
-        for field in form.field_info():
+        try:
+            form = get_form_by_id(fsas.finaid_form_id, fsas.api_key)
+            field_info = form.field_info()
+        except APIError as e:
+            return str(e)
+        for field in field_info:
             if field['label']:
                 line = '{0}: {1}'.format(field['id'], field['label'])
                 lines.append(line)
