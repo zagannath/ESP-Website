@@ -225,6 +225,7 @@ INSTALLED_APPS = (
     'esp.seltests',
     'esp.dataviews',
     'django.contrib.redirects',
+    'esp.formstack',
 )
 
 import os
