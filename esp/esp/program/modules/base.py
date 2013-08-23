@@ -207,7 +207,7 @@ class ProgramModuleObj(models.Model):
         #   Only do so if we've not blocked this behavior, though
         if tl != "manage" and tl != "json" and isinstance(moduleobj, CoreModule):
             scrmi = prog.getModuleExtension('StudentClassRegModuleInfo')
-            if scrmi.force_show_required_modules:
+            if scrmi is not None and scrmi.force_show_required_modules:
                 if not_logged_in(request):
                     return HttpResponseRedirect('%s?%s=%s' % (LOGIN_URL, REDIRECT_FIELD_NAME, quote(request.get_full_path())))
                 other_modules = moduleobj.findCategoryModules(False)
