@@ -73,7 +73,6 @@ class AdmissionsDashboard(ProgramModuleObj):
         decision_action_choices = [('admit', 'Admit'), ('unadmit', 'Unadmit'), ('waitlist', 'Waitlist')]
         return render_to_response(self.baseDir() + 'admissions.html',
                                   request,
-                                  (prog, tl),
                                   {'classes': classes,
                                    'admin_status_choices': admin_status_choices,
                                    'teacher_rating_choices': teacher_rating_choices,
