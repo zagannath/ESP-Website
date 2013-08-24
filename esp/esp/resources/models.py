@@ -464,7 +464,7 @@ class Location(HistoryPreservingModel):
   description = models.TextField(blank=True, default='', help_text='A description of the location to be viewable by admins, teachers, volunteers, and students.')
   is_requestable = models.BooleanField()
   url = models.URLField()
-  admins = models.ForeignKey(AreaAdministrativeGroup, null=True, help_text='The group that administrates this location and controls its usage, if different than that of the entire area.')
+  admins = models.ForeignKey(AreaAdministrator, null=True, help_text='The administrator or office that controls usage of this location.')
 
   def __unicode__(self):
     """
@@ -494,7 +494,7 @@ class Area(HistoryPreservingModel):
   description = models.TextField(blank=True, default='', help_text='A description of the area to be viewable by anyone.')
   is_requestable = models.BooleanField()
   url = models.URLField(blank=True, help_text="The url to a campus-specific mapping website (e.g. whereis.mit.edu?go=2), or to the area's website.")
-  admins = models.ForeignKey(AreaAdministrativeGroup, null=True, help_text='The group that administrates this area and controls its usage.')
+  admins = models.ForeignKey(AreaAdministrator, null=True, help_text='The administrator or office that controls usage of this area.')
 
   def __unicode__(self):
     return self.name
@@ -575,15 +575,8 @@ class NewResourceRequest(HistoryPreservingModel):
   wont_satisfy = models.BooleanField(default=False) # set True if the request has been denied
   is_satisfied_override = models.TextField(blank=True, default="") # If the request has been satisfied, but the requested NewResource can't be assigned on the website, then set this field as a non-empty explanation string
 
-class AreaAdministrativeGroup(HistoryPreservingModel):
-  name = models.CharField()
-  email = models.EmailField()
-  url = models.URLField()
-  description = models.TextField(help_text='A description of the group of administrators for a set of areas/locations, viewable by admins.')
-
 class AreaAdministrator(HistoryPreservingModel):
   name = models.CharField()
-  email = models.EmailField()
+  emails = models.TextField(help_text='An email address or list of email addresses for this administrator')
   url = models.URLField()
   description = models.TextField(help_text='A description of an administrator for a set of areas/locations, viewable by admins.')
-  group = models.ForeignKey()
