@@ -398,22 +398,28 @@ def install():
 #   New new resource stuff (August 2013)
 ########################################
 
-@reversion # Keep all previous versions of all objects, along with who made changes and when.
+import reversion
+from django.contrib.contenttypes import generic
+from django.contrib.contenttypes.models import ContentType
+
 class HistoryPreservingModel(models.Model): # All resource models will inherit from here, i.e. all models below have these properties.
   is_active = models.BooleanField(default=True, help_text='Instead of deleting an object, set this to False. That way we retain access to old data and histories. Only objects with is_active=True will be used in views.')
   class Meta:
     abstract = True
+# Use reversion.register(YourModel) after each class definition to keep all previous versions of all objects, along with who made changes and when.
 
 class NewResource(HistoryPreservingModel):
   """
   An instance of a physical resource, e.g. Chromebook #1, ADP2 Mac adapter, etc.
   All resources exist globally for use by all programs.
   """
-  abstraction = models.ForeignKey(AbstractResource)
-  identifier = models.CharField()
+  abstraction = models.ForeignKey('AbstractResource')
+  identifier = models.CharField(max_length=128)
   # unique (abstraction, identifier) when is_active
   availability = models.ManyToManyField(Event, help_text='All of the meeting times when this resource can be assigned to a class.') # Don't bother with a through model, because we can keep revisions here, and we don't need extra attributes for the through relation.
   description = models.TextField(blank=True, default='', help_text='A description of the resource to be viewable by admins and teachers.')
+
+reversion.register(NewResource)
 
 class AbstractResource(HistoryPreservingModel):
   """
@@ -421,14 +427,16 @@ class AbstractResource(HistoryPreservingModel):
   Resources of the same AbstractResource are identical.
   All abstract resources exist globally for use by all programs.
   """
-  resource_type = models.ForeignKey(NewResourceType)
-  name = models.CharField()
+  resource_type = models.ForeignKey('NewResourceType')
+  name = models.CharField(max_length=128)
   # unique (resource_type, name) when is_active
   is_reusable = models.BooleanField(default=False, help_text="Can this resource be assigned more than once, or will its use in a class destroy it (such as a food item)? This defaults to True (can be reused), with the possibility of it being False (can't be reused, its use destroys it).")
   is_requestable = models.BooleanField()
   description = models.TextField(blank=True, default='', help_text='A description of the abstract resource to be viewable by admins and teachers.')
-  furnishings = generic.GenericRelation(Furnishing, content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the furnishings of this AbstractResource.')
-  requests = generic.GenericRelation(NewResourceRequest, content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the requests for this AbstractResource.')
+  furnishings = generic.GenericRelation('Furnishing', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the furnishings of this AbstractResource.')
+  requests = generic.GenericRelation('NewResourceRequest', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the requests for this AbstractResource.')
+
+reversion.register(AbstractResource)
 
 class NewResourceType(HistoryPreservingModel):
   """
@@ -439,32 +447,34 @@ class NewResourceType(HistoryPreservingModel):
   The trees will never be very tall, and probably not very wide, so this does not pose the problems that the DataTree has.
   All resource types exist globally for use by all programs.
   """
-  parent = models.ForeignKey(NewResourceType, null=True)
-  name = models.CharField()
+  parent = models.ForeignKey('NewResourceType', null=True)
+  name = models.CharField(max_length=128)
   # unique (resource_type, name) when is_active
   is_reusable = models.BooleanField(default=False, help_text="Can this resource be assigned more than once, or will its use in a class destroy it (such as a food item)? This defaults to True (can be reused), with the possibility of it being False (can't be reused, its use destroys it).")
   is_requestable = models.BooleanField()
   is_substitutable = models.BooleanField(default=False, help_text="Can descendants be safely substituted for one another in most cases? For example, projectors can be substitutable, but A/V can't be.")
   description = models.TextField(blank=True, default='', help_text='A description of the resource type to be viewable by admins and teachers.')
-  furnishings = generic.GenericRelation(Furnishing, content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the furnishings of this NewResourceType.')
-  requests = generic.GenericRelation(NewResourceRequest, content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the requests for this NewResourceType.')
+  furnishings = generic.GenericRelation('Furnishing', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the furnishings of this NewResourceType.')
+  requests = generic.GenericRelation('NewResourceRequest', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the requests for this NewResourceType.')
+
+reversion.register(NewResourceType)
 
 class Location(HistoryPreservingModel):
   """
   A.k.a. a classroom.
   All locations exist globally for use by all programs.
   """
-  area = models.ForeignKey(Area, null=True)
-  name = models.CharField()
+  area = models.ForeignKey('Area', null=True)
+  name = models.CharField(max_length=128)
   # unique (area, name)
-  display_template_override = models.CharField(blank=True, default='') # Some string template that includes %(location)s and, optionally, %(area)s; or the empty string. If not empty, overrides area.display_template.
+  display_template_override = models.CharField(max_length=128, blank=True, default='') # Some string template that includes %(location)s and, optionally, %(area)s; or the empty string. If not empty, overrides area.display_template.
   capacity = models.IntegerField()
   furnishings = property() # All AbstractResources, ResourceTypes that appear with this Location in the Furnishings table.
   availability = models.ManyToManyField(Event)
   description = models.TextField(blank=True, default='', help_text='A description of the location to be viewable by admins, teachers, volunteers, and students.')
   is_requestable = models.BooleanField()
   url = models.URLField()
-  admins = models.ForeignKey(AreaAdministrator, null=True, help_text='The administrator or office that controls usage of this location.')
+  admins = models.ForeignKey('AreaAdministrator', null=True, help_text='The administrator or office that controls usage of this location.')
 
   def __unicode__(self):
     """
@@ -478,26 +488,30 @@ class Location(HistoryPreservingModel):
     display_template = self.display_template_override or self.area.display_template
     return display_template % {'area': self.area, 'location': self.name}
 
+reversion.register(Location)
+
 class Area(HistoryPreservingModel):
   """
   A.k.a. building, or floor, or wing, etc.
   A set of Locations that are sufficiently close together for scheduling purposes, and form some distinct geographic unit.
   All areas exist globally for use by all programs.
   """
-  name = models.CharField()
-  display_template = models.CharField(default='%(area)s %(location)s') # Some string template that includes %(location)s and, optionally, %(area)s. Applied to all Locations in the area for their __unicode__ method. See Location.__unicode__()
-  adjacent_areas = models.ManyToMany(symmetric=True) # Other sets of Locations that are also sufficiently close together for scheduling purposes, e.g. adjacent buildings.
-  latitude = models.DecimalField(null=True, help_text='The latitude of the area, for lookup on an external map service.')
-  longitude = models.DecimalField(null=True, help_text='The longitude of the area, for lookup on an external map service.')
+  name = models.CharField(max_length=128)
+  display_template = models.CharField(max_length=128, default='%(area)s %(location)s') # Some string template that includes %(location)s and, optionally, %(area)s. Applied to all Locations in the area for their __unicode__ method. See Location.__unicode__()
+  adjacent_areas = models.ManyToManyField('Area', symmetrical=True) # Other sets of Locations that are also sufficiently close together for scheduling purposes, e.g. adjacent buildings.
+  latitude = models.DecimalField(null=True, max_digits=8, decimal_places=5, help_text='The latitude of the area, for lookup on an external map service.')
+  longitude = models.DecimalField(null=True, max_digits=8, decimal_places=5, help_text='The longitude of the area, for lookup on an external map service.')
   map_pixel_x = models.IntegerField(null=True, help_text='The x-coordinate pixel of this area on a campus map.')
   map_pixel_y = models.IntegerField(null=True, help_text='The y-coordinate pixel of this area on a campus map.')
   description = models.TextField(blank=True, default='', help_text='A description of the area to be viewable by anyone.')
   is_requestable = models.BooleanField()
   url = models.URLField(blank=True, help_text="The url to a campus-specific mapping website (e.g. whereis.mit.edu?go=2), or to the area's website.")
-  admins = models.ForeignKey(AreaAdministrator, null=True, help_text='The administrator or office that controls usage of this area.')
+  admins = models.ForeignKey('AreaAdministrator', null=True, help_text='The administrator or office that controls usage of this area.')
 
   def __unicode__(self):
     return self.name
+
+reversion.register(Area)
 
 class Furnishing(HistoryPreservingModel):
   """
@@ -508,12 +522,14 @@ class Furnishing(HistoryPreservingModel):
   description = models.TextField(blank=True, default='', help_text='A description of the furnishing to be viewable by admins and teachers.')
 
   # The following three combine into one field.
-  resource_content_type = models.ForeignKey(ContentType, choices=(AbstractResource,NewResourceType))
+  resource_content_type = models.ForeignKey(ContentType, limit_choices_to={'id__in': lambda: (ContentType.objects.get_for_model(AbstractResource), ContentType.objects.get_for_model(NewResourceType))})
   resource_object_id = models.PositiveIntegerField()
-  resource = generic.GenericForeignKey('resource_content_type', 'resource_object_id', help_text='The furnished resource.')
+  resource = generic.GenericForeignKey('resource_content_type', 'resource_object_id') # The furnished resource.
 
   location = models.ForeignKey(Location)
   amount = models.IntegerField()
+
+reversion.register(Furnishing)
 
 class NewResourceAssignment(HistoryPreservingModel):
   """
@@ -545,16 +561,18 @@ class NewResourceAssignment(HistoryPreservingModel):
   not available, or different across time blocks (just in case it isn't
   intentional, in which case ignore_warnings can be set to True).
   """
-  resource = models.ManyToManyFields(NewResource)
-  location = models.ForeignKey(Location, help_text='The location of the class.')
-  section = models.ForeignKey(ClassSection)
+  resource = models.ManyToManyField(NewResource)
+  location = models.ForeignKey(Location, related_name='location_newresourceassignment', help_text='The location of the class.')
+  section = models.ForeignKey('program.ClassSection')
   meeting_time = models.ForeignKey(Event) # Replaces the meeting_times m2m field on ClassSection.
   # unique (resource, location, section) if is_active
   lock_level = models.IntegerField() # for autoscheduler
   ignore_warnings = models.BooleanField(default=False, help_text='If True, ignore warnings that would normally be generated from this assignment breaking constraints, such as scheduling two classes in the same classroom, if this broken constraint is deliberate.')
-  meeting_point = models.ForeignKey(Location, null=True, help_text='The meeting point for teachers and students to gather at the beginning of class, before walking to the actual class location.')
-  hide_location_from_students = models.BooleanField(default=False, help_true='Set this equal to True if the students should only be shown the meeting point, and not the location.')
+  meeting_point = models.ForeignKey(Location, null=True, related_name='meeting_point_newresourceassignment', help_text='The meeting point for teachers and students to gather at the beginning of class, before walking to the actual class location.')
+  hide_location_from_students = models.BooleanField(default=False, help_text='Set this equal to True if the students should only be shown the meeting point, and not the location.')
   instructions = models.TextField(default='', help_text='For teachers (and students, if there is a meeting point and hide_location_from_students is False) to see, instructions for getting from the meeting point to the actual location, and any other important information.')
+
+reversion.register(NewResourceAssignment)
 
 class NewResourceRequest(HistoryPreservingModel):
   """
@@ -563,11 +581,11 @@ class NewResourceRequest(HistoryPreservingModel):
   (the model object requested must have is_requestable == True).
   """
   # The following three combine into one field.
-  resource_content_type = models.ForeignKey(ContentType, choices=(AbstractResource,NewResourceType))
+  resource_content_type = models.ForeignKey(ContentType, limit_choices_to={'id__in': lambda: (ContentType.objects.get_for_model(AbstractResource), ContentType.objects.get_for_model(NewResourceType))})
   resource_object_id = models.PositiveIntegerField()
-  resource = generic.GenericForeignKey('resource_content_type', 'resource_object_id', null=True, help_text='The requested resource.') # Target must have is_requestable==True. null if the resource doesn't exist in our system yet; should be described in "description"
+  resource = generic.GenericForeignKey('resource_content_type', 'resource_object_id') # The requested resource. Target must have is_requestable==True. null if the resource doesn't exist in our system yet; should be described in "description"
 
-  subject = models.ForeignKey(ClassSubject)
+  subject = models.ForeignKey('program.ClassSubject')
   amount = models.IntegerField(null=True)
   pcnt_of_capacity = models.IntegerField(null=True)
   required = models.BooleanField(default=True, help_text='Do you absolutely need this resource for your class?')
@@ -575,8 +593,12 @@ class NewResourceRequest(HistoryPreservingModel):
   wont_satisfy = models.BooleanField(default=False) # set True if the request has been denied
   is_satisfied_override = models.TextField(blank=True, default="") # If the request has been satisfied, but the requested NewResource can't be assigned on the website, then set this field as a non-empty explanation string
 
+reversion.register(NewResourceRequest)
+
 class AreaAdministrator(HistoryPreservingModel):
-  name = models.CharField()
+  name = models.CharField(max_length=128)
   emails = models.TextField(help_text='An email address or list of email addresses for this administrator')
   url = models.URLField()
   description = models.TextField(help_text='A description of an administrator for a set of areas/locations, viewable by admins.')
+
+reversion.register(AreaAdministrator)
