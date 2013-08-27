@@ -447,7 +447,7 @@ class NewResourceType(HistoryPreservingModel):
   The trees will never be very tall, and probably not very wide, so this does not pose the problems that the DataTree has.
   All resource types exist globally for use by all programs.
   """
-  parent = models.ForeignKey('NewResourceType', null=True)
+  parent = models.ForeignKey('NewResourceType', null=True, blank=True)
   name = models.CharField(max_length=128)
   # unique (resource_type, name) when is_active
   is_reusable = models.BooleanField(default=False, help_text="Can this resource be assigned more than once, or will its use in a class destroy it (such as a food item)? This defaults to True (can be reused), with the possibility of it being False (can't be reused, its use destroys it).")
@@ -457,6 +457,9 @@ class NewResourceType(HistoryPreservingModel):
   furnishings = generic.GenericRelation('Furnishing', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the furnishings of this NewResourceType.')
   requests = generic.GenericRelation('NewResourceRequest', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the requests for this NewResourceType.')
 
+  def __str__(self):
+      return self.name
+
 reversion.register(NewResourceType)
 
 class Location(HistoryPreservingModel):
@@ -464,7 +467,7 @@ class Location(HistoryPreservingModel):
   A.k.a. a classroom.
   All locations exist globally for use by all programs.
   """
-  area = models.ForeignKey('Area', null=True)
+  area = models.ForeignKey('Area', null=True, blank=True)
   name = models.CharField(max_length=128)
   # unique (area, name)
   display_template_override = models.CharField(max_length=128, blank=True, default='') # Some string template that includes %(location)s and, optionally, %(area)s; or the empty string. If not empty, overrides area.display_template.
@@ -474,7 +477,7 @@ class Location(HistoryPreservingModel):
   description = models.TextField(blank=True, default='', help_text='A description of the location to be viewable by admins, teachers, volunteers, and students.')
   is_requestable = models.BooleanField()
   url = models.URLField()
-  admins = models.ForeignKey('AreaAdministrator', null=True, help_text='The administrator or office that controls usage of this location.')
+  admins = models.ForeignKey('AreaAdministrator', null=True, blank=True, help_text='The administrator or office that controls usage of this location.')
 
   def __unicode__(self):
     """
@@ -499,8 +502,8 @@ class Area(HistoryPreservingModel):
   name = models.CharField(max_length=128)
   display_template = models.CharField(max_length=128, default='%(area)s %(location)s') # Some string template that includes %(location)s and, optionally, %(area)s. Applied to all Locations in the area for their __unicode__ method. See Location.__unicode__()
   adjacent_areas = models.ManyToManyField('Area', symmetrical=True) # Other sets of Locations that are also sufficiently close together for scheduling purposes, e.g. adjacent buildings.
-  latitude = models.DecimalField(null=True, max_digits=8, decimal_places=5, help_text='The latitude of the area, for lookup on an external map service.')
-  longitude = models.DecimalField(null=True, max_digits=8, decimal_places=5, help_text='The longitude of the area, for lookup on an external map service.')
+  latitude = models.DecimalField(null=True, blank=True, max_digits=8, decimal_places=5, help_text='The latitude of the area, for lookup on an external map service.')
+  longitude = models.DecimalField(null=True, blank=True, max_digits=8, decimal_places=5, help_text='The longitude of the area, for lookup on an external map service.')
   map_pixel_x = models.IntegerField(null=True, help_text='The x-coordinate pixel of this area on a campus map.')
   map_pixel_y = models.IntegerField(null=True, help_text='The y-coordinate pixel of this area on a campus map.')
   description = models.TextField(blank=True, default='', help_text='A description of the area to be viewable by anyone.')
@@ -568,7 +571,7 @@ class NewResourceAssignment(HistoryPreservingModel):
   # unique (resource, location, section) if is_active
   lock_level = models.IntegerField() # for autoscheduler
   ignore_warnings = models.BooleanField(default=False, help_text='If True, ignore warnings that would normally be generated from this assignment breaking constraints, such as scheduling two classes in the same classroom, if this broken constraint is deliberate.')
-  meeting_point = models.ForeignKey(Location, null=True, related_name='meeting_point_newresourceassignment', help_text='The meeting point for teachers and students to gather at the beginning of class, before walking to the actual class location.')
+  meeting_point = models.ForeignKey(Location, null=True, blank=True, related_name='meeting_point_newresourceassignment', help_text='The meeting point for teachers and students to gather at the beginning of class, before walking to the actual class location.')
   hide_location_from_students = models.BooleanField(default=False, help_text='Set this equal to True if the students should only be shown the meeting point, and not the location.')
   instructions = models.TextField(default='', help_text='For teachers (and students, if there is a meeting point and hide_location_from_students is False) to see, instructions for getting from the meeting point to the actual location, and any other important information.')
 
@@ -586,8 +589,8 @@ class NewResourceRequest(HistoryPreservingModel):
   resource = generic.GenericForeignKey('resource_content_type', 'resource_object_id') # The requested resource. Target must have is_requestable==True. null if the resource doesn't exist in our system yet; should be described in "description"
 
   subject = models.ForeignKey('program.ClassSubject')
-  amount = models.IntegerField(null=True)
-  pcnt_of_capacity = models.IntegerField(null=True)
+  amount = models.IntegerField(null=True, blank=True)
+  pcnt_of_capacity = models.IntegerField(null=True, blank=True)
   required = models.BooleanField(default=True, help_text='Do you absolutely need this resource for your class?')
   description = models.TextField(blank=True, default='', help_text='A description of the resource request to be provided by teachers and viewable by admins.')
   wont_satisfy = models.BooleanField(default=False) # set True if the request has been denied
