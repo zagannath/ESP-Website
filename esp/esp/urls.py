@@ -115,6 +115,11 @@ urlpatterns += patterns('',
                         (r'^',  include('esp.survey.urls')),
                         )
 
+    # resources views
+urlpatterns += patterns('esp.resources.views',
+        (r'^manage/resources/$','manageResources'),
+        )
+
 urlpatterns += patterns('esp.web.views.json',
 
      # JSON

@@ -36,7 +36,8 @@ Learning Unlimited, Inc.
 
 from django import forms
 from django.forms.formsets import formset_factory
-from esp.resources.models import ResourceType, ResourceRequest
+from django.forms.models import modelformset_factory
+from esp.resources.models import ResourceType, ResourceRequest, NewResourceType, AbstractResource, NewResource
 from esp.tagdict.models import Tag
 
 class IDBasedModelChoiceField(forms.ModelChoiceField):
@@ -146,3 +147,47 @@ class ResourceTypeForm(forms.ModelForm):
     
 class ResourceTypeFormSet(formset_factory(ResourceTypeForm, extra=0)):
     pass
+
+class NewResourceForm(forms.ModelForm):
+    class Meta:
+        model = NewResource
+        exclude = ['availability', 'abstraction']
+        widgets = {
+                'description': forms.Textarea(attrs={'rows': 2}),
+                'abstraction': forms.HiddenInput(),
+                }
+
+NewResourceFormSet = modelformset_factory(NewResource, form=NewResourceForm, extra=5)
+
+class AbstractResourceForm(forms.ModelForm):
+    class Meta:
+        model = AbstractResource
+        fields = ['resource_type', 'name', 'is_active', 'is_reusable', 'is_requestable', 'description']
+        widgets = {
+                'resource_type': forms.HiddenInput(),
+                }
+
+    def __init__(self, *args, **kwargs):
+        super(AbstractResourceForm, self).__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].help_text=None
+        self.fields['is_active'].label='Active'
+        self.fields['is_reusable'].label='Reusable'
+        self.fields['is_requestable'].label='Requestable'
+
+class NewResourceTypeForm(forms.ModelForm):
+    class Meta:
+        model = NewResourceType
+        fields = ['parent', 'name', 'is_active', 'is_reusable', 'is_requestable', 'is_substitutable', 'description']
+        widgets = {
+                'parent': forms.HiddenInput(),
+                }
+
+    def __init__(self, *args, **kwargs):
+        super(NewResourceTypeForm, self).__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].help_text=None
+        self.fields['is_active'].label='Active'
+        self.fields['is_reusable'].label='Reusable'
+        self.fields['is_requestable'].label='Requestable'
+        self.fields['is_substitutable'].label='Substitutable'

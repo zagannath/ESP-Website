@@ -34,3 +34,68 @@ Learning Unlimited, Inc.
 """
 # Create your views here.
 
+from django.forms.models import modelformset_factory
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
+
+from .models import NewResourceType, AbstractResource, NewResource
+from .forms import NewResourceFormSet, NewResourceTypeForm, AbstractResourceForm, NewResourceForm
+from esp.web.util import render_to_response
+
+def manageResources(request):
+    context = {}
+    if request.method == 'POST':
+        if 'new-resource-type' in request.POST:
+            #we've updated a NewResourceType
+            newResourceTypeId = int(request.POST['new-resource-type'])
+            newResourceTypeForm = NewResourceTypeForm(request.POST, instance=NewResourceType.objects.get(id=newResourceTypeId))
+            if newResourceTypeForm.is_valid():
+                newResourceTypeForm.save()
+                return HttpResponse('')
+            return HttpResponseBadRequest(str(newResourceTypeForm.errors)) #todo make this actually send the errors
+        elif 'abstract-resource' in request.POST:
+            #we've updated an AbstractResource (or its associated Resources)
+            abstractResourceId = int(request.POST['abstract-resource'])
+            abstractResource = AbstractResource.objects.get(id=abstractResourceId)
+            abstractResourceForm = AbstractResourceForm(request.POST, instance=abstractResource)
+            if abstractResourceForm.is_valid():
+                newResourceFormSet = NewResourceFormSet(request.POST, request.FILES, prefix='abstract-resource-%s' % abstractResourceId, queryset = abstractResource.newresource_set.all())
+                if newResourceFormSet.is_valid():
+                    abstractResourceForm.save()
+                    for newResource in newResourceFormSet.save(commit=False):
+                        newResource.abstraction=abstractResource
+                        newResource.save()
+                    newResourceFormSet.save_m2m()
+                    return HttpResponse('')
+            return HttpResponseBadRequest(str(abstractResourceForm.errors)+str(newResourceFormSet.errors)) #todo make this actually send the errors
+        else:
+            return HttpResponseBadRequest('')
+    else:
+        #we aren't submitting a form
+        newResourceTypes = list(NewResourceType.objects.all()) #listify these so we can index into them
+        abstractResources = list(AbstractResource.objects.prefetch_related('newresource_set'))
+        newResourceTypeIndices = {}
+        rootNewResourceTypes = []
+        for i, newResourceType in zip(range(len(newResourceTypes)),newResourceTypes):
+            newResourceType.form = NewResourceTypeForm(instance=newResourceType)
+            newResourceType.html_id = 'new-resource-type-%s' % newResourceType.id
+            newResourceTypeIndices[newResourceType.id]=i
+            newResourceType.children=[]
+        for newResourceType in newResourceTypes:
+            # populate the tree of resource types
+            if newResourceType.parent_id is not None:
+                newResourceTypes[newResourceTypeIndices[newResourceType.parent_id]].children.append(newResourceType)
+            else:
+                rootNewResourceTypes.append(newResourceType)
+        for abstractResource in abstractResources:
+            abstractResource.form = AbstractResourceForm(instance=abstractResource)
+            abstractResource.newResourceFormSet = NewResourceFormSet(queryset=abstractResource.newresource_set.all(), prefix="abstract-resource-%s" % abstractResource.id)
+            abstractResource.html_id = 'abstract-resource-%s' % abstractResource.id
+            newResourceTypes[newResourceTypeIndices[abstractResource.resource_type_id]].children.append(abstractResource) #these will always be leaves of the tree so it's easier
+        context['newResourceTypes']=newResourceTypes
+        context['abstractResources']=abstractResources
+        context['rootNewResourceTypes']=rootNewResourceTypes
+        context['addNewResourceTypeForm'] = NewResourceTypeForm()
+        context['addAbstractResourceForm'] = AbstractResourceForm()
+    return render_to_response('resources/manage_resources.html', request, context)
+        
+        

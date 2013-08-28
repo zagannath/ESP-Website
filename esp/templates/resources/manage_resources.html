@@ -1,0 +1,96 @@
+{% extends "main.html" %}
+{% load resourcetree %}
+
+{% block title %}Resource Management{% endblock %}
+
+{% block xtrajs %}
+    <script type="text/javascript" src="/media/scripts/jquery.jstree.js"></script>
+    <script type="text/javascript" src="/media/scripts/resourcetree.js"></script>
+{% endblock %}
+
+{% block stylesheets %}
+    {{block.super}}
+    <link rel="stylesheet" type="text/css" href="/media/styles/forms.css" />
+    <link rel="stylesheet" type="text/css" href="/media/styles/jquery-ui/jquery-ui.css" />
+    <link rel="stylesheet" type="text/css" href="/media/styles/jquery-ui/jstree/style.css" />
+{% endblock %}
+
+{% block content %}
+
+<h1>Resource Management</h1>
+
+<p>Explanatory text here.</p>
+
+<table>
+    <tr>
+        <td style="vertical-align: top;">
+            <div>
+            <div id="resource-tree-view" style="width: 130px;">
+                <ul>
+                    {% for node in rootNewResourceTypes %}
+                        {% show_tree_node node %}
+                    {% endfor %}
+                </ul>
+            </div>
+            <script type="text/javascript">
+                $j(document).ready(function () {renderTree($j("#resource-tree-view"));});
+            </script>
+        </td>
+        <td style="vertical-align: top;">
+            {% for newResourceType in newResourceTypes %}
+                <div id="view-{{newResourceType.html_id}}" class="new-resource-type" style="display: none;">
+                    <form id="form-{{newResourceType.html_id}}" method="post" action="">{% csrf_token %}
+                        <script type="text/javascript">
+                            $j("#form-{{newResourceType.html_id}}").submit(submitMe);
+                        </script>
+                        <input type="hidden" name="new-resource-type" value="{{newResourceType.id}}"/>
+                        <table>
+                            <tbody>
+                                {{newResourceType.form}}
+                                <tr><td colspan=2><input class="button" type="Submit" name="new-resource-type-submit" value="Save" /></td></tr>
+                            </tbody>
+                        </table>
+                    </form>
+                </div>
+            {% endfor %}
+            {% for abstractResource in abstractResources %}
+                <div id="view-{{abstractResource.html_id}}" class="abstract-resource" style="display: none;">
+                    <form id="form-{{abstractResource.html_id}}" method="post" action="">{% csrf_token %}
+                        <script type="text/javascript">
+                            $j("#form-{{abstractResource.html_id}}").submit(submitMe);
+                        </script>
+                        <input type="hidden" name="abstract-resource" value="{{abstractResource.id}}"/>
+                        <table>
+                            <tbody>
+                                {{abstractResource.form}}
+                            </tbody>
+                        </table>
+                        <label>Resources:</label>
+                            {{abstractResource.newResourceFormSet.management_form}}
+                            
+                            <table>
+                                <tbody>
+                                    {% for form in abstractResource.newResourceFormSet %}
+                                        <tr>
+                                            {{form.id}}
+                                            <input type="hidden" name="{{form.abstraction.html_name}}" value="{{abstractResource.id}}" />
+                                            <td>{{form.is_active}}</td>
+                                            <td>{{form.identifier}}</td>
+                                        </tr>
+                                        <tr><td colspan=2>{{form.description}}</td></tr>
+                                        {% if form.errors %}
+                                            <tr><td colspan=2>{{form.errors}}</td></tr>
+                                        {% endif %}
+                                    {% endfor %}
+                        
+                                </tbody>
+                            </table>
+                        <input class="button" type="Submit" name="abstract-resource-submit" value="Save" />
+                    </form>
+                </div>
+            {% endfor %}
+        </td>
+    </tr>
+</table>
+<div id="saved-form" style="display: none;"><p>Saved!</p></div>
+{% endblock %}
