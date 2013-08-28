@@ -1,5 +1,4 @@
 {% extends "main.html" %}
-{% load resourcetree %}
 
 {% block title %}Resource Management{% endblock %}
 
@@ -28,7 +27,7 @@
             <div id="resource-tree-view" style="width: 130px;">
                 <ul>
                     {% for node in rootNewResourceTypes %}
-                        {% show_tree_node node %}
+                        {% include "resources/tree_node.html" %}
                     {% endfor %}
                 </ul>
             </div>
@@ -38,59 +37,14 @@
         </td>
         <td style="vertical-align: top;">
             {% for newResourceType in newResourceTypes %}
-                <div id="view-{{newResourceType.html_id}}" class="new-resource-type" style="display: none;">
-                    <form id="form-{{newResourceType.html_id}}" method="post" action="">{% csrf_token %}
-                        <script type="text/javascript">
-                            $j("#form-{{newResourceType.html_id}}").submit(submitMe);
-                        </script>
-                        <input type="hidden" name="new-resource-type" value="{{newResourceType.id}}"/>
-                        <table>
-                            <tbody>
-                                {{newResourceType.form}}
-                                <tr><td colspan=2><input class="button" type="Submit" name="new-resource-type-submit" value="Save" /></td></tr>
-                            </tbody>
-                        </table>
-                    </form>
-                </div>
+                {% include "resources/new_resource_type_form.html" %}
             {% endfor %}
             {% for abstractResource in abstractResources %}
-                <div id="view-{{abstractResource.html_id}}" class="abstract-resource" style="display: none;">
-                    <form id="form-{{abstractResource.html_id}}" method="post" action="">{% csrf_token %}
-                        <script type="text/javascript">
-                            $j("#form-{{abstractResource.html_id}}").submit(submitMe);
-                        </script>
-                        <input type="hidden" name="abstract-resource" value="{{abstractResource.id}}"/>
-                        <table>
-                            <tbody>
-                                {{abstractResource.form}}
-                            </tbody>
-                        </table>
-                        <label>Resources:</label>
-                            {{abstractResource.newResourceFormSet.management_form}}
-                            
-                            <table>
-                                <tbody>
-                                    {% for form in abstractResource.newResourceFormSet %}
-                                        <tr>
-                                            {{form.id}}
-                                            <input type="hidden" name="{{form.abstraction.html_name}}" value="{{abstractResource.id}}" />
-                                            <td>{{form.is_active}}</td>
-                                            <td>{{form.identifier}}</td>
-                                        </tr>
-                                        <tr><td colspan=2>{{form.description}}</td></tr>
-                                        {% if form.errors %}
-                                            <tr><td colspan=2>{{form.errors}}</td></tr>
-                                        {% endif %}
-                                    {% endfor %}
-                        
-                                </tbody>
-                            </table>
-                        <input class="button" type="Submit" name="abstract-resource-submit" value="Save" />
-                    </form>
-                </div>
+                {% include "resources/abstract_resource_form.html" %}
             {% endfor %}
+            {% include "resources/new_resource_type_form.html" with newResourceType=addNewResourceType %}
+            {% include "resources/abstract_resource_form.html" with abstractResource=addAbstractResource %}
         </td>
     </tr>
 </table>
-<div id="saved-form" style="display: none;"><p>Saved!</p></div>
 {% endblock %}

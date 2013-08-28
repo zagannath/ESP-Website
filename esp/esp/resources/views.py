@@ -46,14 +46,30 @@ def manageResources(request):
     if request.method == 'POST':
         if 'new-resource-type' in request.POST:
             #we've updated a NewResourceType
-            newResourceTypeId = int(request.POST['new-resource-type'])
-            newResourceTypeForm = NewResourceTypeForm(request.POST, instance=NewResourceType.objects.get(id=newResourceTypeId))
+            if request.POST['new-resource-type']=='None':
+                newResourceTypeForm = NewResourceTypeForm(request.POST)
+            else:
+                newResourceTypeId = int(request.POST['new-resource-type'])
+                newResourceTypeForm = NewResourceTypeForm(request.POST, instance=NewResourceType.objects.get(id=newResourceTypeId))
             if newResourceTypeForm.is_valid():
                 newResourceTypeForm.save()
                 return HttpResponse('')
             return HttpResponseBadRequest(str(newResourceTypeForm.errors)) #todo make this actually send the errors
         elif 'abstract-resource' in request.POST:
             #we've updated an AbstractResource (or its associated Resources)
+            if request.POST['abstract-resource']=='None':
+                abstractResourceForm = AbstractResourceForm(request.POST)
+                if abstractResourceForm.is_valid():
+                    newResourceFormSet = NewResourceFormSet(request.POST, request.FILES, prefix='abstract-resource-add', queryset = AbstractResource.objects.none())
+                    if newResourceFormSet.is_valid():
+                        abstractResource = abstractResourceForm.save()
+                        for newResource in newResourceFormSet.save(commit=False):
+                            newResource.abstraction=abstractResource
+                            newResource.save()
+                        newResourceFormSet.save_m2m()
+                        return HttpResponse('')
+                    return HttpResponseBadRequest(str(abstractResourceForm.errors)+str(newResourceFormSet.errors)) #todo make this actually send the errors
+                return HttpResponseBadRequest(str(abstractResourceForm.errors)) #todo make this actually send the errors
             abstractResourceId = int(request.POST['abstract-resource'])
             abstractResource = AbstractResource.objects.get(id=abstractResourceId)
             abstractResourceForm = AbstractResourceForm(request.POST, instance=abstractResource)
@@ -66,16 +82,17 @@ def manageResources(request):
                         newResource.save()
                     newResourceFormSet.save_m2m()
                     return HttpResponse('')
-            return HttpResponseBadRequest(str(abstractResourceForm.errors)+str(newResourceFormSet.errors)) #todo make this actually send the errors
+                return HttpResponseBadRequest(str(abstractResourceForm.errors)+str(newResourceFormSet.errors)) #todo make this actually send the errors
+            return HttpResponseBadRequest(str(abstractResourceForm.errors)) #todo make this actually send the errors
         else:
             return HttpResponseBadRequest('')
     else:
         #we aren't submitting a form
-        newResourceTypes = list(NewResourceType.objects.all()) #listify these so we can index into them
-        abstractResources = list(AbstractResource.objects.prefetch_related('newresource_set'))
+        newResourceTypes = list(NewResourceType.objects.filter(is_active=True)) #listify these so we can index into them
+        abstractResources = list(AbstractResource.objects.filter(is_active=True).prefetch_related('newresource_set'))
         newResourceTypeIndices = {}
         rootNewResourceTypes = []
-        for i, newResourceType in zip(range(len(newResourceTypes)),newResourceTypes):
+        for i, newResourceType in enumerate(newResourceTypes):
             newResourceType.form = NewResourceTypeForm(instance=newResourceType)
             newResourceType.html_id = 'new-resource-type-%s' % newResourceType.id
             newResourceTypeIndices[newResourceType.id]=i
@@ -94,8 +111,15 @@ def manageResources(request):
         context['newResourceTypes']=newResourceTypes
         context['abstractResources']=abstractResources
         context['rootNewResourceTypes']=rootNewResourceTypes
-        context['addNewResourceTypeForm'] = NewResourceTypeForm()
-        context['addAbstractResourceForm'] = AbstractResourceForm()
+        addNewResourceType = NewResourceType()
+        addNewResourceType.html_id = 'new-resource-type-add'
+        addNewResourceType.form = NewResourceTypeForm()
+        context['addNewResourceType'] = addNewResourceType
+        addAbstractResource = AbstractResource()
+        addAbstractResource.html_id = 'abstract-resource-add'
+        addAbstractResource.form = AbstractResourceForm()
+        addAbstractResource.newResourceFormSet = NewResourceFormSet(queryset=AbstractResource.objects.none(), prefix="abstract-resource-add")
+        context['addAbstractResource'] = addAbstractResource
     return render_to_response('resources/manage_resources.html', request, context)
         
         

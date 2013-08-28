@@ -1,0 +1,14 @@
+<div id="view-{{newResourceType.html_id}}" class="new-resource-type" style="display: none;">
+    <form id="form-{{newResourceType.html_id}}" method="post" action="">{% csrf_token %}
+        <script type="text/javascript">
+            $j("#form-{{newResourceType.html_id}}").submit(submitMe);
+        </script>
+        <input type="hidden" name="new-resource-type" value="{{newResourceType.id}}"/>
+        <table>
+            <tbody>
+                {{newResourceType.form}}
+                <tr><td colspan=2><input class="button" type="Submit" name="new-resource-type-submit" value="Save" /></td></tr>
+            </tbody>
+        </table>
+    </form>
+</div>

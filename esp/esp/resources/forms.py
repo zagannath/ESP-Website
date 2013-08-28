@@ -154,7 +154,6 @@ class NewResourceForm(forms.ModelForm):
         exclude = ['availability', 'abstraction']
         widgets = {
                 'description': forms.Textarea(attrs={'rows': 2}),
-                'abstraction': forms.HiddenInput(),
                 }
 
 NewResourceFormSet = modelformset_factory(NewResource, form=NewResourceForm, extra=5)
@@ -165,15 +164,13 @@ class AbstractResourceForm(forms.ModelForm):
         fields = ['resource_type', 'name', 'is_active', 'is_reusable', 'is_requestable', 'description']
         widgets = {
                 'resource_type': forms.HiddenInput(),
+                'is_active': forms.HiddenInput(),
                 }
 
     def __init__(self, *args, **kwargs):
         super(AbstractResourceForm, self).__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].help_text=None
-        self.fields['is_active'].label='Active'
-        self.fields['is_reusable'].label='Reusable'
-        self.fields['is_requestable'].label='Requestable'
 
 class NewResourceTypeForm(forms.ModelForm):
     class Meta:
@@ -181,13 +178,10 @@ class NewResourceTypeForm(forms.ModelForm):
         fields = ['parent', 'name', 'is_active', 'is_reusable', 'is_requestable', 'is_substitutable', 'description']
         widgets = {
                 'parent': forms.HiddenInput(),
+                'is_active': forms.HiddenInput(),
                 }
 
     def __init__(self, *args, **kwargs):
         super(NewResourceTypeForm, self).__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].help_text=None
-        self.fields['is_active'].label='Active'
-        self.fields['is_reusable'].label='Reusable'
-        self.fields['is_requestable'].label='Requestable'
-        self.fields['is_substitutable'].label='Substitutable'

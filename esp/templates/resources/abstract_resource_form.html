@@ -1,0 +1,33 @@
+<div id="view-{{abstractResource.html_id}}" class="abstract-resource" style="display: none;">
+    <form id="form-{{abstractResource.html_id}}" method="post" action="">{% csrf_token %}
+        <script type="text/javascript">
+            $j("#form-{{abstractResource.html_id}}").submit(submitMe);
+        </script>
+        <input type="hidden" name="abstract-resource" value="{{abstractResource.id}}"/>
+        <table>
+            <tbody>
+                {{abstractResource.form}}
+            </tbody>
+        </table>
+        <label>Resources:</label>
+            {{abstractResource.newResourceFormSet.management_form}}
+            
+            <table>
+                <tbody>
+                    {% for form in abstractResource.newResourceFormSet %}
+                        <tr>
+                            {{form.id}}
+                            <td>{{form.is_active}}</td>
+                            <td>{{form.identifier}}</td>
+                        </tr>
+                        <tr><td colspan=2>{{form.description}}</td></tr>
+                        {% if form.errors %}
+                            <tr><td colspan=2>{{form.errors}}</td></tr>
+                        {% endif %}
+                    {% endfor %}
+        
+                </tbody>
+            </table>
+        <input class="button" type="Submit" name="abstract-resource-submit" value="Save" />
+    </form>
+</div>

@@ -46,6 +46,7 @@ from django.db.models.query import Q
 from django.core.cache import cache
 
 import pickle
+import itertools
 
 ########################################
 #   New resource stuff (Michael P)
@@ -403,7 +404,7 @@ from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
 
 class HistoryPreservingModel(models.Model): # All resource models will inherit from here, i.e. all models below have these properties.
-  is_active = models.BooleanField(default=True, help_text='Instead of deleting an object, set this to False. That way we retain access to old data and histories. Only objects with is_active=True will be used in views.')
+  is_active = models.BooleanField(default=True, verbose_name='Active', help_text='Instead of deleting an object, set this to False. That way we retain access to old data and histories. Only objects with is_active=True will be used in views.')
   class Meta:
     abstract = True
 # Use reversion.register(YourModel) after each class definition to keep all previous versions of all objects, along with who made changes and when.
@@ -430,8 +431,8 @@ class AbstractResource(HistoryPreservingModel):
   resource_type = models.ForeignKey('NewResourceType')
   name = models.CharField(max_length=128)
   # unique (resource_type, name) when is_active
-  is_reusable = models.BooleanField(default=False, help_text="Can this resource be assigned more than once, or will its use in a class destroy it (such as a food item)? This defaults to True (can be reused), with the possibility of it being False (can't be reused, its use destroys it).")
-  is_requestable = models.BooleanField()
+  is_reusable = models.BooleanField(default=False, verbose_name='Reusable', help_text="Can this resource be assigned more than once, or will its use in a class destroy it (such as a food item)? This defaults to True (can be reused), with the possibility of it being False (can't be reused, its use destroys it).")
+  is_requestable = models.BooleanField(verbose_name='Requestable')
   description = models.TextField(blank=True, default='', help_text='A description of the abstract resource to be viewable by admins and teachers.')
   furnishings = generic.GenericRelation('Furnishing', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the furnishings of this AbstractResource.')
   requests = generic.GenericRelation('NewResourceRequest', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the requests for this AbstractResource.')
@@ -450,15 +451,39 @@ class NewResourceType(HistoryPreservingModel):
   parent = models.ForeignKey('NewResourceType', null=True, blank=True)
   name = models.CharField(max_length=128)
   # unique (resource_type, name) when is_active
-  is_reusable = models.BooleanField(default=False, help_text="Can this resource be assigned more than once, or will its use in a class destroy it (such as a food item)? This defaults to True (can be reused), with the possibility of it being False (can't be reused, its use destroys it).")
-  is_requestable = models.BooleanField()
-  is_substitutable = models.BooleanField(default=False, help_text="Can descendants be safely substituted for one another in most cases? For example, projectors can be substitutable, but A/V can't be.")
+  is_reusable = models.BooleanField(default=False, verbose_name='Reusable', help_text="Can this resource be assigned more than once, or will its use in a class destroy it (such as a food item)? This defaults to True (can be reused), with the possibility of it being False (can't be reused, its use destroys it).")
+  is_requestable = models.BooleanField(verbose_name='Requestable')
+  is_substitutable = models.BooleanField(default=False, verbose_name='Substitutable', help_text="Can descendants be safely substituted for one another in most cases? For example, projectors can be substitutable, but A/V can't be.")
   description = models.TextField(blank=True, default='', help_text='A description of the resource type to be viewable by admins and teachers.')
   furnishings = generic.GenericRelation('Furnishing', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the furnishings of this NewResourceType.')
   requests = generic.GenericRelation('NewResourceRequest', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the requests for this NewResourceType.')
 
+  def save(self,*args,**kwargs):
+      super(NewResourceType, self).save(*args, **kwargs)
+      if self.was_active and not self.is_active:
+          #if we're inactivating the instance, inactivate all its children too.
+          #This is a little inefficient, but I don't see a good way around it, and we hope the tree won't be too gigantic.
+          for child in itertools.chain(AbstractResource.objects.filter(resource_type=self),NewResourceType.objects.filter(parent=self)):
+              child.is_active = False
+              child.save()
+      self.was_active=self.is_active
+
+  def __init__(self, *args, **kwargs):
+      super(NewResourceType, self).__init__(*args, **kwargs)
+      self.was_active = self.is_active #now we can check whether this has changed (see .save())
+
   def __str__(self):
       return self.name
+
+  def activateAllChildren(self):
+      """Activates the resource type and all of its children."""
+      self.is_active = True
+      self.save()
+      for child in NewResourceType.objects.filter(parent=self):
+          child.activateAllChildren()
+      for child in AbstractResource.objects.filter(resource_type=self):
+          child.is_active = True
+          child.save()
 
 reversion.register(NewResourceType)
 
