@@ -52,23 +52,11 @@ function deleteNode (node) {
 }
 
 
-function renderTree(container) {
-    var tree = container.jstree({
-        "plugins" : ["types", "themes", "html_data", "ui", "dnd", "crrm", "contextmenu"],
-        "ui" : {
-            "select_limit" : 1,
-        },
-        "types" : {
-            "types" : {
-                "abstract-resource" : {
-                    "icon" : { "image" : "/media/images/spacer.gif" },
-                    "valid_children" : "none",
-                },
-                "new-resource-type" : {
-                },
-            },
-        },
-        "crrm" : {
+function renderTree(container, editable) {
+    var opts = {}
+    if (editable) {
+        opts.plugins = ["types", "themes", "html_data", "ui", "dnd", "crrm", "contextmenu"];
+        opts.crrm = {
             "move" : {
                 "check_move" : function (move) {
                     if (move.cr==-1) {
@@ -80,8 +68,8 @@ function renderTree(container) {
                     };
                 },
             },
-        },
-        "contextmenu" : {
+        };
+        opts.contextmenu = {
             "items" : function (node) {
                 var menu = {};
                 menu.del = {
@@ -107,34 +95,53 @@ function renderTree(container) {
                 }
                 return menu;
             },
+        };
+    } else {
+        opts.plugins = ["types", "themes", "html_data", "ui"]
+    };
+    opts.ui = {
+        "select_limit" : 1,
+    };
+    opts.types = {
+        "types" : {
+            "abstract-resource" : {
+                "icon" : { "image" : "/media/images/spacer.gif" },
+                "valid_children" : "none",
+            },
+            "new-resource-type" : {
+            },
         },
-    });
+    };
+    console.log(opts);
+    var tree = container.jstree(opts);
     tree.bind("select_node.jstree", function (event, data) {
         nodeA = $j("a",data.rslt.obj) // we want the id from the <a> not the <li>
         $j(".abstract-resource").css("display","none");
         $j(".new-resource-type").css("display","none");
         $j("#view-" + nodeA[0].id).css("display","");
     });
-    tree.bind("move_node.jstree", function (event, data) {
-        var move = data.args[0];
-        var childForm = $j("#form-" + move.o.context.id);
-        if (move.cr==-1) {
-            var parentId = "";
-        } else {
-            var parentId = move.cr.context.id.replace("new-resource-type-","");
-        }
-        if (move.o.context.id.indexOf("abstract-resource")==-1) {
-            //if we're moving a NRT
-            $j("#id_parent", childForm).attr("value",parentId);
-        } else {
-            //if we're moving an AR
-            $j("#id_resource_type", childForm).attr("value",parentId);
-        }
-        childForm.submit();
-    });
-    tree.bind("create_node.jstree", function (event, data) {
-        tree.jstree("select_node", data.rslt.obj[0], true);
-    });
+    if (editable) {
+        tree.bind("move_node.jstree", function (event, data) {
+            var move = data.args[0];
+            var childForm = $j("#form-" + move.o.context.id);
+            if (move.cr==-1) {
+                var parentId = "";
+            } else {
+                var parentId = move.cr.context.id.replace("new-resource-type-","");
+            }
+            if (move.o.context.id.indexOf("abstract-resource")==-1) {
+                //if we're moving a NRT
+                $j("#id_parent", childForm).attr("value",parentId);
+            } else {
+                //if we're moving an AR
+                $j("#id_resource_type", childForm).attr("value",parentId);
+            }
+            childForm.submit();
+        });
+        tree.bind("create_node.jstree", function (event, data) {
+            tree.jstree("select_node", data.rslt.obj[0], true);
+        });
+    }
 }
 
 function submitMe () {
