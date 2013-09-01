@@ -1,4 +1,4 @@
-<div id="view-{{abstractResource.html_id}}" class="abstract-resource" style="display: none;">
+<div id="view-{{abstractResource.html_id}}" class="abstract-resource" {% if not abstractResource.show %} style="display: none;"{% endif %}>
     <form id="form-{{abstractResource.html_id}}" method="post" action="">{% csrf_token %}
         <script type="text/javascript">
             $j("#form-{{abstractResource.html_id}}").submit(submitMe);
@@ -20,9 +20,12 @@
                             <td>{{form.is_active}}</td>
                             <td>{{form.identifier}}</td>
                         </tr>
+                        {% if form.id.errors or form.is_active.errors or form.identifier.errors %}
+                            <tr><td colspan=2>{{form.id.errors}} {{form.is_active.errors}} {{form.identifier.errors}}</td></tr>
+                        {% endif %}
                         <tr><td colspan=2>{{form.description}}</td></tr>
-                        {% if form.errors %}
-                            <tr><td colspan=2>{{form.errors}}</td></tr>
+                        {% if form.description.errors or form.non_field_errors %}
+                            <tr><td colspan=2>{{form.description.errors}} {{form.non_field_errors}}</td></tr>
                         {% endif %}
                     {% endfor %}
         
@@ -31,3 +34,6 @@
         <input class="button" type="Submit" name="abstract-resource-submit" value="Save" />
     </form>
 </div>
+{% if abstractResource.extra %}
+    {% with abstract_resource_form="resources/abstract_resource_form.html" %}{% include abstract_resource_form with abstractResource=abstractResource.extra %}{% endwith %}
+{% endif %}

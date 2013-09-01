@@ -1,4 +1,4 @@
-<div id="view-{{newResourceType.html_id}}" class="new-resource-type" style="display: none;">
+<div id="view-{{newResourceType.html_id}}" class="new-resource-type" {% if not newResourceType.show %} style="display: none;" {% endif %}>
     <form id="form-{{newResourceType.html_id}}" method="post" action="">{% csrf_token %}
         <script type="text/javascript">
             $j("#form-{{newResourceType.html_id}}").submit(submitMe);
@@ -12,3 +12,6 @@
         </table>
     </form>
 </div>
+{% if newResourceType.extra %}
+    {% with new_resource_type_form="resources/new_resource_type_form.html" %}{% include new_resource_type_form with newResourceType=newResourceType.extra %}{% endwith %}
+{% endif %}

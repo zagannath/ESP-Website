@@ -48,42 +48,69 @@ def manageResources(request):
             #we've updated a NewResourceType
             if request.POST['new-resource-type']=='None':
                 newResourceTypeForm = NewResourceTypeForm(request.POST)
+                if newResourceTypeForm.is_valid():
+                    newResourceType = newResourceTypeForm.save()
+                    newResourceType.html_id = 'new-resource-type-%s' % newResourceType.id
+                    newResourceType.extra = NewResourceType()
+                    newResourceType.extra.html_id = 'new-resource-type-add'
+                    newResourceType.extra.form = NewResourceTypeForm()
+                    newResourceType.extra.show = False
+                else:
+                    newResourceType = NewResourceType()
+                    newResourceType.html_id = 'new-resource-type-add'
             else:
                 newResourceTypeId = int(request.POST['new-resource-type'])
-                newResourceTypeForm = NewResourceTypeForm(request.POST, instance=NewResourceType.objects.get(id=newResourceTypeId))
+                newResourceType = NewResourceType.objects.get(id=newResourceTypeId)
+                newResourceTypeForm = NewResourceTypeForm(request.POST, instance=newResourceType)
             if newResourceTypeForm.is_valid():
-                newResourceTypeForm.save()
-                return HttpResponse('')
-            return HttpResponseBadRequest(str(newResourceTypeForm.errors)) #todo make this actually send the errors
+                newResourceType = newResourceTypeForm.save()
+                newResourceType.html_id = 'new-resource-type-%s' % newResourceType.id
+            newResourceType.form = newResourceTypeForm
+            newResourceType.show = True
+            context['newResourceType']=newResourceType
+            return render_to_response('resources/new_resource_type_form.html',request, context)
         elif 'abstract-resource' in request.POST:
             #we've updated an AbstractResource (or its associated Resources)
             if request.POST['abstract-resource']=='None':
                 abstractResourceForm = AbstractResourceForm(request.POST)
+                newResourceFormSet = NewResourceFormSet(request.POST, request.FILES, prefix='abstract-resource-add', queryset = NewResource.objects.none())
                 if abstractResourceForm.is_valid():
-                    newResourceFormSet = NewResourceFormSet(request.POST, request.FILES, prefix='abstract-resource-add', queryset = AbstractResource.objects.none())
                     if newResourceFormSet.is_valid():
                         abstractResource = abstractResourceForm.save()
                         for newResource in newResourceFormSet.save(commit=False):
                             newResource.abstraction=abstractResource
                             newResource.save()
                         newResourceFormSet.save_m2m()
-                        return HttpResponse('')
-                    return HttpResponseBadRequest(str(abstractResourceForm.errors)+str(newResourceFormSet.errors)) #todo make this actually send the errors
-                return HttpResponseBadRequest(str(abstractResourceForm.errors)) #todo make this actually send the errors
-            abstractResourceId = int(request.POST['abstract-resource'])
-            abstractResource = AbstractResource.objects.get(id=abstractResourceId)
-            abstractResourceForm = AbstractResourceForm(request.POST, instance=abstractResource)
-            if abstractResourceForm.is_valid():
-                newResourceFormSet = NewResourceFormSet(request.POST, request.FILES, prefix='abstract-resource-%s' % abstractResourceId, queryset = abstractResource.newresource_set.all())
-                if newResourceFormSet.is_valid():
-                    abstractResourceForm.save()
-                    for newResource in newResourceFormSet.save(commit=False):
-                        newResource.abstraction=abstractResource
-                        newResource.save()
-                    newResourceFormSet.save_m2m()
-                    return HttpResponse('')
-                return HttpResponseBadRequest(str(abstractResourceForm.errors)+str(newResourceFormSet.errors)) #todo make this actually send the errors
-            return HttpResponseBadRequest(str(abstractResourceForm.errors)) #todo make this actually send the errors
+                        abstractResource.html_id = 'abstract-resource-%s' % abstractResource.id
+                        abstractResource.extra = AbstractResource()
+                        abstractResource.extra.html_id = 'abstract-resource-add'
+                        abstractResource.extra.form = AbstractResourceForm()
+                        abstractResource.extra.newResourceFormSet = NewResourceFormSet(queryset=AbstractResource.objects.none(), prefix="abstract-resource-add")
+                        abstractResource.extra.show = False
+                    else:
+                        abstractResource = AbstractResource()
+                        abstractResource.html_id='abstract-resource-add'
+                else:
+                    abstractResource = AbstractResource()
+                    abstractResource.html_id='abstract-resource-add'
+            else:
+                abstractResourceId = int(request.POST['abstract-resource'])
+                abstractResource = AbstractResource.objects.get(id=abstractResourceId)
+                abstractResourceForm = AbstractResourceForm(request.POST, instance=abstractResource)
+                if abstractResourceForm.is_valid():
+                    newResourceFormSet = NewResourceFormSet(request.POST, request.FILES, prefix='abstract-resource-%s' % abstractResourceId, queryset = abstractResource.newresource_set.all())
+                    if newResourceFormSet.is_valid():
+                        abstractResourceForm.save()
+                        for newResource in newResourceFormSet.save(commit=False):
+                            newResource.abstraction=abstractResource
+                            newResource.save()
+                        newResourceFormSet.save_m2m()
+                        abstractResource.html_id = 'abstract-resource-type-%s' % abstractResource.id
+            abstractResource.form = abstractResourceForm
+            abstractResource.newResourceFormSet = newResourceFormSet
+            abstractResource.show = True
+            context['abstractResource'] = abstractResource
+            return render_to_response('resources/abstract_resource_form.html', request, context)
         else:
             return HttpResponseBadRequest('')
     else:
@@ -95,6 +122,7 @@ def manageResources(request):
         for i, newResourceType in enumerate(newResourceTypes):
             newResourceType.form = NewResourceTypeForm(instance=newResourceType)
             newResourceType.html_id = 'new-resource-type-%s' % newResourceType.id
+            newResourceType.show = False
             newResourceTypeIndices[newResourceType.id]=i
             newResourceType.children=[]
         for newResourceType in newResourceTypes:
@@ -114,11 +142,13 @@ def manageResources(request):
         addNewResourceType = NewResourceType()
         addNewResourceType.html_id = 'new-resource-type-add'
         addNewResourceType.form = NewResourceTypeForm()
+        addNewResourceType.show = False
         context['addNewResourceType'] = addNewResourceType
         addAbstractResource = AbstractResource()
         addAbstractResource.html_id = 'abstract-resource-add'
         addAbstractResource.form = AbstractResourceForm()
         addAbstractResource.newResourceFormSet = NewResourceFormSet(queryset=AbstractResource.objects.none(), prefix="abstract-resource-add")
+        addAbstractResource.show = False
         context['addAbstractResource'] = addAbstractResource
     return render_to_response('resources/manage_resources.html', request, context)
         

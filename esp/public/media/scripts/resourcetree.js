@@ -1,30 +1,50 @@
 function createAbstractResource (node) {
-    $j(".jstree").jstree("create_node",node,"inside",{
-        "data" : {
-            "title" : "New Abstract Resource",
-            "attr" : {
-                "id" : "abstract-resource-add",
-                "rel" : "abstract-resource",
-            }
-        },
-    });
-    $j("#id_resource_type","#form-abstract-resource-add").attr("value",node.context.id.replace("new-resource-type-",""));
+    if ($j("#abstract-resource-add").length) {
+        alert("Finish creating your previous resource before creating a new one!");
+        $j(".jstree").jstree("select_node","#abstract-resource-add",true);
+    } else {
+        $j(".jstree").jstree("create_node",node,"inside",{
+            "data" : {
+                "title" : "New Abstract Resource",
+                "attr" : {
+                    "id" : "abstract-resource-add",
+                    "rel" : "abstract-resource",
+                }
+            },
+        });
+        $j("#id_resource_type","#form-abstract-resource-add").attr("value",node.context.id.replace("new-resource-type-",""));
+    }
 }
 
 function createNewResourceType (node) {
-    $j(".jstree").jstree("create_node",node,"inside",{
-        "data" : {
-            "title" : "New Resource Type", // which, of course, is really a New NewResourceType...
-            "attr" : {
-                "id" : "new-resource-type-add",
-                "rel" : "new-resource-type",
-            }
-        },
-    });
-    if (node) {
-        $j("#id_parent","#form-new-resource-type-add").attr("value",node.context.id.replace("new-resource-type-",""));
+    if ($j("#new-resource-type-add").length) {
+        alert("Finish creating your previous resource before creating a new one!");
+        $j(".jstree").jstree("select_node","#new-resource-type-add",true);
+    } else {
+        $j(".jstree").jstree("create_node",node,"inside",{
+            "data" : {
+                "title" : "New Resource Type", // which, of course, is really a New NewResourceType...
+                "attr" : {
+                    "id" : "new-resource-type-add",
+                    "rel" : "new-resource-type",
+                }
+            },
+        });
+        if (node) {
+            $j("#id_parent","#form-new-resource-type-add").attr("value",node.context.id.replace("new-resource-type-",""));
+        }
     }
 }
+
+function deleteNode (node) {
+    if (confirm("Are you sure you want to delete "+$j(".jstree").jstree("get_text",node)+" and all its children?")) {
+        var form = $j("#form-"+node.context.id);
+        $j("#id_is_active",form).attr("value","False");
+        form.submit();
+        $j(".jstree").jstree("delete_node", node);
+    }
+}
+
 
 function renderTree(container) {
     var tree = container.jstree({
@@ -50,15 +70,7 @@ function renderTree(container) {
                 var menu = {};
                 menu.del = {
                     "label" : "Delete",
-                    "action" : function (obj) {
-                        if (confirm("Are you sure you want to delete "+$j(".jstree").jstree("get_text",node)+" and all its children?")) {
-                            var form = $j("#form-"+node.context.id);
-                            $j("#id_is_active",form).attr("value","False");
-                            console.log(form);
-                            form.submit();
-                            $j(".jstree").jstree("delete_node", node);
-                        }
-                    }
+                    "action" : deleteNode
                 };
                 if (node.context.id.indexOf("abstract-resource")==-1) {
                     menu.createNewResourceType = {
@@ -75,9 +87,11 @@ function renderTree(container) {
         },
     });
     tree.bind("select_node.jstree", function (event, data) {
+        nodeA = $j("a",data.rslt.obj)
+        console.log(nodeA)
         $j(".abstract-resource").css("display","none");
         $j(".new-resource-type").css("display","none");
-        $j("#view-" + data.args[0].id).css("display","");
+        $j("#view-" + nodeA[0].id).css("display","");
     });
     tree.bind("move_node.jstree", function (event, data) {
         var move = data.args[0];
@@ -96,6 +110,9 @@ function renderTree(container) {
         }
         childForm.submit();
     });
+    tree.bind("create_node.jstree", function (event, data) {
+        tree.jstree("select_node", data.rslt.obj[0], true);
+    });
 }
 
 function submitMe () {
@@ -104,13 +121,9 @@ function submitMe () {
     var thisId = $j(this).attr("id");
     var name = $j("#id_name",this).attr("value");
     $j.post($j(this).attr("action"), $j(this).serialize(), function(response) {
-        //will do something soon
-        if (response) {
-            alert(response);
-        } else {
-            button.attr("value","Saved");
-            $j(".jstree").jstree("rename_node",thisId.replace("form-","#"),name);
-        }
+        $j(thisId.replace("form-","#view-")).replaceWith(response);
+        $j(".jstree").jstree("rename_node",thisId.replace("form-","#"),name);
+        button.attr("value","Saved");
     });
     return false;
 };
