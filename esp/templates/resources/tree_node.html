@@ -1,4 +1,4 @@
-<li>
+<li rel="{% if "abstract-resource" in node.html_id %}abstract-resource{% else %}new-resource-type{% endif %}">
 <a href="#" id="{{node.html_id}}" rel="{% if "abstract-resource" in node.html_id %}abstract-resource{% else %}new-resource-type{% endif %}">{{node.name}}</a>
 {% if node.children %}
     <ul>

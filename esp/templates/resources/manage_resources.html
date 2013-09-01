@@ -18,13 +18,15 @@
 
 <h1>Resource Management</h1>
 
-<p>Explanatory text here.</p>
+<p>From this page you can create the resource types that teachers will be able to request.  Resource Types are groups of resources that can be nested in a tree.  Abstract Resources are types of resources that are interchangable (like &quot;HDMI-enabled projectors&quot;) which can have particular instances, like &quot;Projector #3&quot;.</p>
+
+<p>To edit a resource, click on it.  To create a Resource Type or Abstract Resource, right-click on whatever you want the parent to be, and choose the appropriate option.  To create a Resource Type that has no parent, right-click anywhere on the tree and click "Create Root Resource Type".  To delete a resource, right click on it.  Note that deletion can be undone, but not through this interface.</p>
 
 <table>
     <tr>
         <td style="vertical-align: top;">
             <div>
-            <div id="resource-tree-view" style="width: 130px;">
+            <div id="resource-tree-view" style="width: 180px;">
                 <ul>
                     {% for node in rootNewResourceTypes %}
                         {% include "resources/tree_node.html" %}

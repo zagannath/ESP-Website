@@ -165,12 +165,8 @@ class AbstractResourceForm(forms.ModelForm):
         widgets = {
                 'resource_type': forms.HiddenInput(),
                 'is_active': forms.HiddenInput(),
+                'description': forms.Textarea(attrs={'cols': 30}),
                 }
-
-    def __init__(self, *args, **kwargs):
-        super(AbstractResourceForm, self).__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].help_text=None
 
 class NewResourceTypeForm(forms.ModelForm):
     class Meta:
@@ -179,9 +175,5 @@ class NewResourceTypeForm(forms.ModelForm):
         widgets = {
                 'parent': forms.HiddenInput(),
                 'is_active': forms.HiddenInput(),
+                'description': forms.Textarea(attrs={'cols': 30}),
                 }
-
-    def __init__(self, *args, **kwargs):
-        super(NewResourceTypeForm, self).__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].help_text=None
