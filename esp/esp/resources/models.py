@@ -437,6 +437,16 @@ class AbstractResource(HistoryPreservingModel):
   furnishings = generic.GenericRelation('Furnishing', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the furnishings of this AbstractResource.')
   requests = generic.GenericRelation('NewResourceRequest', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the requests for this AbstractResource.')
 
+  @property
+  def html_id(self):
+      """Returns the string to use as the HTML id of the AbstractResource's forms and nodes."""
+      if self.id is None:
+          #we have an unsaved instance
+          return 'abstract-resource-add'
+      else:
+          return 'abstract-resource-' + str(self.id)
+
+
 reversion.register(AbstractResource)
 
 class NewResourceType(HistoryPreservingModel):
@@ -484,6 +494,15 @@ class NewResourceType(HistoryPreservingModel):
       for child in AbstractResource.objects.filter(resource_type=self):
           child.is_active = True
           child.save()
+
+  @property
+  def html_id(self):
+      """Returns the string to use as the HTML id of the AbstractResource's forms and nodes."""
+      if self.id is None:
+          #we have an unsaved instance
+          return 'new-resource-type-add'
+      else:
+          return 'new-resource-type-' + str(self.id)
 
 reversion.register(NewResourceType)
 

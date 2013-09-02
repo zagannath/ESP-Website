@@ -40,7 +40,9 @@ from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpRespo
 from .models import NewResourceType, AbstractResource, NewResource
 from .forms import NewResourceFormSet, NewResourceTypeForm, AbstractResourceForm, NewResourceForm
 from esp.web.util import render_to_response
+from esp.users.models import admin_required
 
+@admin_required
 def manageResources(request):
     context = {}
     if request.method == 'POST':
@@ -52,15 +54,12 @@ def manageResources(request):
                 newResourceTypeForm = NewResourceTypeForm(request.POST)
                 if newResourceTypeForm.is_valid():
                     newResourceType = newResourceTypeForm.save()
-                    newResourceType.html_id = 'new-resource-type-%s' % newResourceType.id
                     # Since we're using the creation form, we need to render an extra blank one too so we can continue to create resources.
                     newResourceType.extra = NewResourceType()
-                    newResourceType.extra.html_id = 'new-resource-type-add'
                     newResourceType.extra.form = NewResourceTypeForm()
                     newResourceType.extra.show = False
                 else:
                     newResourceType = NewResourceType()
-                    newResourceType.html_id = 'new-resource-type-add'
             else:
                 # We've updated an existing one
                 newResourceTypeId = int(request.POST['new-resource-type'])
@@ -68,7 +67,6 @@ def manageResources(request):
                 newResourceTypeForm = NewResourceTypeForm(request.POST, instance=newResourceType)
                 if newResourceTypeForm.is_valid():
                     newResourceType = newResourceTypeForm.save()
-                    newResourceType.html_id = 'new-resource-type-%s' % newResourceType.id
             newResourceType.form = newResourceTypeForm
             newResourceType.show = True
             # By now we should have packed all the data into the NRT.
@@ -80,40 +78,31 @@ def manageResources(request):
                 # We've created one
                 abstractResourceForm = AbstractResourceForm(request.POST)
                 newResourceFormSet = NewResourceFormSet(request.POST, request.FILES, prefix='abstract-resource-add', queryset = NewResource.objects.none())
-                if abstractResourceForm.is_valid():
-                    if newResourceFormSet.is_valid():
-                        abstractResource = abstractResourceForm.save()
-                        for newResource in newResourceFormSet.save(commit=False):
-                            newResource.abstraction=abstractResource
-                            newResource.save()
-                        newResourceFormSet.save_m2m()
-                        abstractResource.html_id = 'abstract-resource-%s' % abstractResource.id
-                        # Since we're using the creation form, we need to render an extra blank one too so we can continue to create resources.
-                        abstractResource.extra = AbstractResource()
-                        abstractResource.extra.html_id = 'abstract-resource-add'
-                        abstractResource.extra.form = AbstractResourceForm()
-                        abstractResource.extra.newResourceFormSet = NewResourceFormSet(queryset=NewResource.objects.none(), prefix="abstract-resource-add")
-                        abstractResource.extra.show = False
-                    else:
-                        abstractResource = AbstractResource()
-                        abstractResource.html_id='abstract-resource-add'
+                if abstractResourceForm.is_valid() and newResourceFormSet.is_valid():
+                    abstractResource = abstractResourceForm.save()
+                    for newResource in newResourceFormSet.save(commit=False):
+                        newResource.abstraction=abstractResource
+                        newResource.save()
+                    newResourceFormSet.save_m2m()
+                    # Since we're using the creation form, we need to render an extra blank one too so we can continue to create resources.
+                    abstractResource.extra = AbstractResource()
+                    abstractResource.extra.form = AbstractResourceForm()
+                    abstractResource.extra.newResourceFormSet = NewResourceFormSet(queryset=NewResource.objects.none(), prefix="abstract-resource-add")
+                    abstractResource.extra.show = False
                 else:
                     abstractResource = AbstractResource()
-                    abstractResource.html_id='abstract-resource-add'
             else:
                 # We've updated an existing one (or created or updated Resources on an existing one)
                 abstractResourceId = int(request.POST['abstract-resource'])
                 abstractResource = AbstractResource.objects.get(id=abstractResourceId)
                 abstractResourceForm = AbstractResourceForm(request.POST, instance=abstractResource)
+                newResourceFormSet = NewResourceFormSet(request.POST, request.FILES, prefix='abstract-resource-%s' % abstractResourceId, queryset = abstractResource.newresource_set.all())
                 if abstractResourceForm.is_valid():
-                    newResourceFormSet = NewResourceFormSet(request.POST, request.FILES, prefix='abstract-resource-%s' % abstractResourceId, queryset = abstractResource.newresource_set.all())
-                    if newResourceFormSet.is_valid():
-                        abstractResourceForm.save()
-                        for newResource in newResourceFormSet.save(commit=False):
-                            newResource.abstraction=abstractResource
-                            newResource.save()
-                        newResourceFormSet.save_m2m()
-                        abstractResource.html_id = 'abstract-resource-%s' % abstractResource.id
+                    abstractResourceForm.save()
+                    for newResource in newResourceFormSet.save(commit=False):
+                        newResource.abstraction=abstractResource
+                        newResource.save()
+                    newResourceFormSet.save_m2m()
             abstractResource.form = abstractResourceForm
             abstractResource.newResourceFormSet = newResourceFormSet
             abstractResource.show = True
@@ -124,41 +113,16 @@ def manageResources(request):
             return HttpResponseBadRequest('')
     else:
         # We aren't submitting a form, so render the whole page.
-        newResourceTypes = list(NewResourceType.objects.filter(is_active=True)) # Listify these so we can index into them when building the tree.
-        abstractResources = list(AbstractResource.objects.filter(is_active=True).prefetch_related('newresource_set'))
-        newResourceTypeIndices = {}
-        rootNewResourceTypes = []
-        for i, newResourceType in enumerate(newResourceTypes):
-            # First, let's pack some extra data, and keep track of which ids correspond to which instances
-            newResourceType.form = NewResourceTypeForm(instance=newResourceType)
-            newResourceType.html_id = 'new-resource-type-%s' % newResourceType.id
-            newResourceType.show = False
-            newResourceTypeIndices[newResourceType.id]=i
-            newResourceType.children=[]
-        for newResourceType in newResourceTypes:
-            # Populate the tree of resource types, using the id -> index mapping we created
-            if newResourceType.parent_id is not None:
-                newResourceTypes[newResourceTypeIndices[newResourceType.parent_id]].children.append(newResourceType)
-            else:
-                rootNewResourceTypes.append(newResourceType)
-        for abstractResource in abstractResources:
-            # Populate the tree with its abstractResources.  These are leaves so we don't need to keep track of their indices, since we won't need to add children.
-            abstractResource.form = AbstractResourceForm(instance=abstractResource)
-            abstractResource.newResourceFormSet = NewResourceFormSet(queryset=abstractResource.newresource_set.all(), prefix="abstract-resource-%s" % abstractResource.id)
-            abstractResource.html_id = 'abstract-resource-%s' % abstractResource.id
-            newResourceTypes[newResourceTypeIndices[abstractResource.resource_type_id]].children.append(abstractResource)
-        context['newResourceTypes']=newResourceTypes
-        context['abstractResources']=abstractResources
-        context['rootNewResourceTypes']=rootNewResourceTypes
+        newResourceTypes = NewResourceType.objects.filter(is_active=True)
+        abstractResources = AbstractResource.objects.filter(is_active=True).prefetch_related('newresource_set')
+        context['newResourceTypes'], context['abstractResources'], context['rootNewResourceTypes']=rootNewResourceTypes = buildResourceTree(newResourceTypes, abstractResources, forms=True)
 
         # Now render creation forms
         addNewResourceType = NewResourceType()
-        addNewResourceType.html_id = 'new-resource-type-add'
         addNewResourceType.form = NewResourceTypeForm()
         addNewResourceType.show = False
         context['addNewResourceType'] = addNewResourceType
         addAbstractResource = AbstractResource()
-        addAbstractResource.html_id = 'abstract-resource-add'
         addAbstractResource.form = AbstractResourceForm()
         addAbstractResource.newResourceFormSet = NewResourceFormSet(queryset=NewResource.objects.none(), prefix="abstract-resource-add")
         addAbstractResource.show = False
@@ -168,3 +132,30 @@ def manageResources(request):
     return render_to_response('resources/manage_resources.html', request, context)
         
         
+def buildResourceTree(newResourceTypeQuerySet, abstractResourceQuerySet, forms=False):
+    """Builds QuerySets of NewResourceTypes and AbstractResources into a tree, namely by packing values into NewResourceType.children and AbstractResource.children.  Returns the list of NewResourceTypes, the list of AbstractResources, and the list of roots in the NewResourceType tree.  If forms, also packs editing forms (and formsets) into them.  This is called in manage resources."""
+    # Listify them so we can index into them when building the tree.
+    newResourceTypes = list(newResourceTypeQuerySet)
+    abstractResources = list(abstractResourceQuerySet)
+    newResourceTypeIndices = {}
+    rootNewResourceTypes = []
+    for i, newResourceType in enumerate(newResourceTypes):
+        # First, let's pack some extra data, and keep track of which ids correspond to which instances
+        if forms:
+            newResourceType.form = NewResourceTypeForm(instance=newResourceType)
+        newResourceTypeIndices[newResourceType.id]=i
+        newResourceType.children=[]
+    for newResourceType in newResourceTypes:
+        # Populate the tree of resource types, using the id -> index mapping we created
+        if newResourceType.parent_id is not None:
+            newResourceTypes[newResourceTypeIndices[newResourceType.parent_id]].children.append(newResourceType)
+        else:
+            rootNewResourceTypes.append(newResourceType)
+    for abstractResource in abstractResources:
+        # Populate the tree with its abstractResources.  These are leaves so we don't need to keep track of their indices, since we won't need to add children.
+        if forms:
+            abstractResource.form = AbstractResourceForm(instance=abstractResource)
+            abstractResource.newResourceFormSet = NewResourceFormSet(queryset=abstractResource.newresource_set.all(), prefix="abstract-resource-%s" % abstractResource.id)
+        newResourceTypes[newResourceTypeIndices[abstractResource.resource_type_id]].children.append(abstractResource)
+    return newResourceTypes, abstractResources, rootNewResourceTypes
+
