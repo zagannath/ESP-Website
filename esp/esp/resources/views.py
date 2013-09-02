@@ -92,7 +92,7 @@ def manageResources(request):
                         abstractResource.extra = AbstractResource()
                         abstractResource.extra.html_id = 'abstract-resource-add'
                         abstractResource.extra.form = AbstractResourceForm()
-                        abstractResource.extra.newResourceFormSet = NewResourceFormSet(queryset=AbstractResource.objects.none(), prefix="abstract-resource-add")
+                        abstractResource.extra.newResourceFormSet = NewResourceFormSet(queryset=NewResource.objects.none(), prefix="abstract-resource-add")
                         abstractResource.extra.show = False
                     else:
                         abstractResource = AbstractResource()
@@ -113,7 +113,7 @@ def manageResources(request):
                             newResource.abstraction=abstractResource
                             newResource.save()
                         newResourceFormSet.save_m2m()
-                        abstractResource.html_id = 'abstract-resource-type-%s' % abstractResource.id
+                        abstractResource.html_id = 'abstract-resource-%s' % abstractResource.id
             abstractResource.form = abstractResourceForm
             abstractResource.newResourceFormSet = newResourceFormSet
             abstractResource.show = True
@@ -160,7 +160,7 @@ def manageResources(request):
         addAbstractResource = AbstractResource()
         addAbstractResource.html_id = 'abstract-resource-add'
         addAbstractResource.form = AbstractResourceForm()
-        addAbstractResource.newResourceFormSet = NewResourceFormSet(queryset=AbstractResource.objects.none(), prefix="abstract-resource-add")
+        addAbstractResource.newResourceFormSet = NewResourceFormSet(queryset=NewResource.objects.none(), prefix="abstract-resource-add")
         addAbstractResource.show = False
         context['addAbstractResource'] = addAbstractResource
 
