@@ -112,6 +112,9 @@ function renderTree(container, editable) {
             },
         },
     };
+    opts.themes = {
+        "url" : "/media/styles/jquery-ui/jstree/style.css"
+    }
     console.log(opts);
     var tree = container.jstree(opts);
     tree.bind("select_node.jstree", function (event, data) {
