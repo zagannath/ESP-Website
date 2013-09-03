@@ -36,6 +36,7 @@ from django.contrib import admin
 from esp.admin import admin_site
 
 from esp.resources.models import ResourceType, ResourceRequest, Resource, ResourceAssignment
+from esp.resources.models import NewResource, AbstractResource, NewResourceType, Location, Area, Furnishing, NewResourceAssignment, NewResourceRequest, AreaAdministrator
 
 class ResourceTypeAdmin(admin.ModelAdmin):
     def rt_choices(self, obj):
@@ -61,3 +62,14 @@ admin_site.register(ResourceType, ResourceTypeAdmin)
 admin_site.register(ResourceRequest, ResourceRequestAdmin)
 admin_site.register(Resource, ResourceAdmin)
 admin_site.register(ResourceAssignment, ResourceAssignmentAdmin)
+
+admin_site.register(NewResource, admin.ModelAdmin)
+admin_site.register(AbstractResource, admin.ModelAdmin)
+admin_site.register(NewResourceType, admin.ModelAdmin)
+admin_site.register(Location, admin.ModelAdmin)
+admin_site.register(Area, admin.ModelAdmin)
+admin_site.register(Furnishing, admin.ModelAdmin)
+admin_site.register(NewResourceAssignment, admin.ModelAdmin)
+admin_site.register(NewResourceRequest, admin.ModelAdmin)
+admin_site.register(AreaAdministrator, admin.ModelAdmin)
+
