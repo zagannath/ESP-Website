@@ -431,8 +431,8 @@ class AbstractResource(HistoryPreservingModel):
   resource_type = models.ForeignKey('NewResourceType')
   name = models.CharField(max_length=128)
   # unique (resource_type, name) when is_active
-  is_reusable = models.BooleanField(default=False, verbose_name='Reusable', help_text="Can this resource be re-used by multiple classes?") #This defaults to True (can be reused), with the possibility of it being False (can't be reused, its use destroys it).
-  is_requestable = models.BooleanField(verbose_name='Requestable', help_text="Can teachers request this resource?")
+  is_reusable = models.BooleanField(default=True, verbose_name='Reusable', help_text="Can this resource be re-used by multiple classes?") #This defaults to True (can be reused), with the possibility of it being False (can't be reused, its use destroys it).
+  is_requestable = models.BooleanField(default=True, verbose_name='Requestable', help_text="Can teachers request this resource?")
   description = models.TextField(blank=True, default='', help_text='A description of the abstract resource to be viewable by admins and teachers.')
   furnishings = generic.GenericRelation('Furnishing', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the furnishings of this AbstractResource.')
   requests = generic.GenericRelation('NewResourceRequest', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the requests for this AbstractResource.')
@@ -461,8 +461,8 @@ class NewResourceType(HistoryPreservingModel):
   parent = models.ForeignKey('NewResourceType', null=True, blank=True)
   name = models.CharField(max_length=128)
   # unique (resource_type, name) when is_active
-  is_reusable = models.BooleanField(default=False, verbose_name='Reusable', help_text="Can this resource be re-used by multiple classes?") #This defaults to True (can be reused), with the possibility of it being False (can't be reused, its use destroys it).
-  is_requestable = models.BooleanField(verbose_name='Requestable', help_text="Can teachers request this resource?")
+  is_reusable = models.BooleanField(default=True, verbose_name='Reusable', help_text="Can this resource be re-used by multiple classes?") #This defaults to True (can be reused), with the possibility of it being False (can't be reused, its use destroys it).
+  is_requestable = models.BooleanField(default=True, verbose_name='Requestable', help_text="Can teachers request this resource?")
   is_substitutable = models.BooleanField(default=False, verbose_name='Substitutable', help_text="Can any subtypes of this resource be substituted for each other?")
   description = models.TextField(blank=True, default='', help_text='A description of the resource type to be viewable by admins and teachers.')
   furnishings = generic.GenericRelation('Furnishing', content_type_field='resource_content_type', object_id_field='resource_object_id', help_text='All of the furnishings of this NewResourceType.')
