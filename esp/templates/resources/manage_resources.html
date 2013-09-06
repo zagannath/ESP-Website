@@ -30,6 +30,8 @@
                 <ul>
                     {% for node in rootNewResourceTypes %}
                         {% include "resources/tree_node.html" %}
+                    {% empty %}
+                        {% include "resources/tree_node.html" with node=addNewResourceType %}
                     {% endfor %}
                 </ul>
             </div>

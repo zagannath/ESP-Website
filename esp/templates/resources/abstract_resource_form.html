@@ -36,6 +36,6 @@
         <input class="button" type="Submit" name="abstract-resource-submit" value="Save" />
     </form>
 </div>
-{% if extra %}
-    {% with abstract_resource_form="resources/abstract_resource_form.html" %}{% include abstract_resource_form with abstractResource=extra %}{% endwith %}
+{% if abstractResource.extra %}
+    {% with abstract_resource_form="resources/abstract_resource_form.html" %}{% include abstract_resource_form with abstractResource=abstractResource.extra %}{% endwith %}
 {% endif %}

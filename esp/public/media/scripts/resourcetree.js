@@ -11,6 +11,9 @@ function createAbstractResource (node) {
                     "rel" : "abstract-resource",
                 }
             },
+            "attr" : {
+                "rel" : "abstract-resource",
+            },
         });
         // set the hidden field for resource_type
         $j("#id_resource_type","#form-abstract-resource-add").attr("value",node.context.id.replace("new-resource-type-",""));
@@ -32,6 +35,9 @@ function createNewResourceType (node) {
                     "id" : "new-resource-type-add",
                     "rel" : "new-resource-type",
                 }
+            },
+            "attr" : {
+                "rel" : "new-resource-type",
             },
         });
         if (node) {
@@ -140,6 +146,7 @@ function renderTree(container, editable) {
                 $j("#id_resource_type", childForm).attr("value",parentId);
             }
             childForm.submit();
+            tree.jstree("select_node", move.o, true);
         });
         tree.bind("create_node.jstree", function (event, data) {
             tree.jstree("select_node", data.rslt.obj[0], true);
@@ -154,8 +161,10 @@ function submitMe () {
     var name = $j("#id_name",this).attr("value");
     $j.post($j(this).attr("action"), $j(this).serialize(), function(response) {
         //we'll get the re-rendered form as a response, so replace the form we just submitted with it.  If we changed the name, change it in the tree too.
-        $j(thisId.replace("form-","#view-")).replaceWith(response);
+        var newForm = $j(response);
+        $j(thisId.replace("form-","#view-")).replaceWith(newForm);
         $j(".jstree").jstree("rename_node",thisId.replace("form-","#"),name);
+        $j(thisId.replace("form-","#")).attr("id",newForm.attr("id").replace("view-",""));
     });
     return false;
 };

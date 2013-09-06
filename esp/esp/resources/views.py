@@ -77,17 +77,18 @@ def manageResources(request):
             if request.POST['abstract-resource']=='None':
                 # We've created one
                 abstractResourceForm = AbstractResourceForm(request.POST)
-                newResourceFormSet = NewResourceFormSet(request.POST, request.FILES, prefix='abstract-resource-add', queryset = NewResource.objects.none())
+                newResourceFormSet = NewResourceFormSet(request.POST, request.FILES, prefix=AbstractResource().html_id, queryset = NewResource.objects.none())
                 if abstractResourceForm.is_valid() and newResourceFormSet.is_valid():
                     abstractResource = abstractResourceForm.save()
                     for newResource in newResourceFormSet.save(commit=False):
                         newResource.abstraction=abstractResource
                         newResource.save()
                     newResourceFormSet.save_m2m()
+                    newResourceFormSet = NewResourceFormSet(queryset=abstractResource.newresource_set.all(), prefix=abstractResource.html_id)
                     # Since we're using the creation form, we need to render an extra blank one too so we can continue to create resources.
                     abstractResource.extra = AbstractResource()
                     abstractResource.extra.form = AbstractResourceForm()
-                    abstractResource.extra.newResourceFormSet = NewResourceFormSet(queryset=NewResource.objects.none(), prefix="abstract-resource-add")
+                    abstractResource.extra.newResourceFormSet = NewResourceFormSet(queryset=NewResource.objects.none(), prefix=abstractResource.extra.html_id)
                     abstractResource.extra.show = False
                 else:
                     abstractResource = AbstractResource()
@@ -96,7 +97,7 @@ def manageResources(request):
                 abstractResourceId = int(request.POST['abstract-resource'])
                 abstractResource = AbstractResource.objects.get(id=abstractResourceId)
                 abstractResourceForm = AbstractResourceForm(request.POST, instance=abstractResource)
-                newResourceFormSet = NewResourceFormSet(request.POST, request.FILES, prefix='abstract-resource-%s' % abstractResourceId, queryset = abstractResource.newresource_set.all())
+                newResourceFormSet = NewResourceFormSet(request.POST, request.FILES, prefix=abstractResource.html_id, queryset = abstractResource.newresource_set.all())
                 if abstractResourceForm.is_valid():
                     abstractResourceForm.save()
                     for newResource in newResourceFormSet.save(commit=False):
@@ -124,7 +125,7 @@ def manageResources(request):
         context['addNewResourceType'] = addNewResourceType
         addAbstractResource = AbstractResource()
         addAbstractResource.form = AbstractResourceForm()
-        addAbstractResource.newResourceFormSet = NewResourceFormSet(queryset=NewResource.objects.none(), prefix="abstract-resource-add")
+        addAbstractResource.newResourceFormSet = NewResourceFormSet(queryset=NewResource.objects.none(), prefix=addAbstractResource.html_id)
         addAbstractResource.show = False
         context['addAbstractResource'] = addAbstractResource
 
@@ -155,7 +156,7 @@ def buildResourceTree(newResourceTypeQuerySet, abstractResourceQuerySet, forms=F
         # Populate the tree with its abstractResources.  These are leaves so we don't need to keep track of their indices, since we won't need to add children.
         if forms:
             abstractResource.form = AbstractResourceForm(instance=abstractResource)
-            abstractResource.newResourceFormSet = NewResourceFormSet(queryset=abstractResource.newresource_set.all(), prefix="abstract-resource-%s" % abstractResource.id)
+            abstractResource.newResourceFormSet = NewResourceFormSet(queryset=abstractResource.newresource_set.all(), prefix=abstractResource.html_id)
         newResourceTypes[newResourceTypeIndices[abstractResource.resource_type_id]].children.append(abstractResource)
     return newResourceTypes, abstractResources, rootNewResourceTypes
 

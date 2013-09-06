@@ -13,6 +13,6 @@
         </table>
     </form>
 </div>
-{% if extra %}
-    {% with new_resource_type_form="resources/new_resource_type_form.html" %}{% include new_resource_type_form with newResourceType=extra %}{% endwith %}
+{% if newResourceType.extra %}
+    {% with new_resource_type_form="resources/new_resource_type_form.html" %}{% include new_resource_type_form with newResourceType=newResourceType.extra %}{% endwith %}
 {% endif %}
