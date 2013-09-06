@@ -40,6 +40,7 @@ from esp.db.fields import AjaxForeignKey
 from esp.middleware import ESPError_Log
 from esp.cache import cache_function
 from esp.tagdict.models          import Tag
+from validators import ExactlyOneNotEmptyValidator
 
 from django.db import models
 from django.db.models.query import Q
@@ -639,6 +640,18 @@ class NewResourceRequest(HistoryPreservingModel):
   description = models.TextField(blank=True, default='', help_text='(optional) A message to the directors with a description of this resource request.')
   wont_satisfy = models.BooleanField(default=False, verbose_name="won't satisfy", help_text='Has the request been denied?')
   is_satisfied_override = models.TextField(blank=True, help_text="An explanation of how the request has been satisfied outside of the website. Should be blank if the request constraint should not be overridden.") # If the request has been satisfied, but the requested NewResource can't be assigned on the website, then set this field as a non-empty explanation string
+
+  def __init__(self, *args, **kwargs):
+    super(NewResourceRequest, self).__init__(*args, **kwargs)
+    self.amount_or_pcnt_of_capacity_validator = ExactlyOneNotEmptyValidator(dict([(name, self._meta.get_field(name).verbose_name) for name in ['amount', 'pcnt_of_capacity']]))
+
+  def clean(self):
+    super(NewResourceRequest, self).clean()
+    self.amount_or_pcnt_of_capacity_validator(self.amount, self.pcnt_of_capacity)
+
+  def save(self, *args, **kwargs):
+    self.full_clean()
+    super(NewResourceRequest, self).save(*args, **kwargs)
 
 reversion.register(NewResourceRequest)
 

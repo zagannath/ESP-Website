@@ -41,6 +41,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from esp.resources.models import ResourceType, ResourceRequest, NewResourceType, AbstractResource, NewResource, NewResourceRequest
 from esp.tagdict.models import Tag
+from validators import ExactlyOneNotEmptyValidator
 
 class IDBasedModelChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
@@ -249,10 +250,20 @@ class NewResourceRequestForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'rows': 4})
         }
 
+    def __init__(self, *args, **kwargs):
+        super(NewResourceRequestForm, self).__init__(*args, **kwargs)
+        self.amount_or_pcnt_of_capacity_validator = ExactlyOneNotEmptyValidator(dict([(name, self.fields[name].label) for name in ['amount', 'pcnt_of_capacity']]))
+
     def clean(self):
         cleaned_data = super(NewResourceRequestForm, self).clean()
         amount_or_pcnt_value = cleaned_data.get('amount_or_pcnt_of_capacity', None)
         self.fields['amount_or_pcnt_of_capacity'].clean_fields(amount_or_pcnt_value, cleaned_data)
+        try:
+            self.amount_or_pcnt_of_capacity_validator(cleaned_data['amount'], cleaned_data['pcnt_of_capacity'])
+        except ValidationError, e:
+            del cleaned_data['amount']
+            del cleaned_data['pcnt_of_capacity']
+            self._errors = e.update_error_dict(self._errors)
         return cleaned_data
 
     def as_table(self):
