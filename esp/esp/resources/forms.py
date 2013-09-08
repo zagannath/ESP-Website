@@ -37,7 +37,9 @@ Learning Unlimited, Inc.
 from django import forms
 from django.forms.formsets import formset_factory
 from django.forms.models import modelformset_factory
-from esp.resources.models import ResourceType, ResourceRequest, NewResourceType, AbstractResource, NewResource
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
+from esp.resources.models import ResourceType, ResourceRequest, NewResourceType, AbstractResource, NewResource, NewResourceRequest
 from esp.tagdict.models import Tag
 
 class IDBasedModelChoiceField(forms.ModelChoiceField):
@@ -164,3 +166,101 @@ class NewResourceTypeForm(forms.ModelForm):
                 'is_active': forms.HiddenInput(),
                 'description': forms.Textarea(attrs={'cols': 30}),
                 }
+
+class AmountOrPercentField(forms.IntegerField):
+    """
+    A Django form field that can take either an amount or an integer percentage.
+    An amount is entered as it would be in an IntegerField.
+    A percentage is entered with a trailing '%' character.
+    In both cases, the IntegerField value cleaning and validating is performed
+    on the integer part of the input.
+    """
+    def __init__(self, amount_field_name=None, pcnt_field_name=None,
+                 max_amount=None, min_amount=0,
+                 max_percent=None, min_percent=0, *args, **kwargs):
+        """
+        Separate bounds can be placed on amounts and percentages.
+        The default is for both to be restricted to non-negative values.
+        The max_value / min_value parameters of the parent class are explicitly
+        forbidden from being passed, since this would be ambiguous.
+
+        Accepts amount_field_name and pcnt_field_name parameters, to record
+        the two underlying field names.
+
+        Instances of this field have an is_percent attribute, which records
+        whether or not the value should be treated as a percentage or not. The
+        default is to assume that it is not a percentage, but an amount.
+        """
+        assert ('max_value' not in kwargs) and ('min_value' not in kwargs)
+        self.amount_field_name, self.pcnt_field_name = amount_field_name, pcnt_field_name
+        self.max_amount, self.min_amount = max_amount, min_amount
+        self.max_percent, self.min_percent = max_percent, min_percent
+        self.is_percent = False
+        super(AmountOrPercentField, self).__init__(*args, **kwargs)
+
+    def to_python(self, value):
+        if isinstance(value, basestring):
+            value = value.strip()
+        if isinstance(value, basestring) and len(value)>0 and value[-1]=='%':
+            self.is_percent = True
+            if self.max_percent is not None:
+                self.validators.append(MaxValueValidator(self.max_percent))
+            if self.min_percent is not None:
+                self.validators.append(MinValueValidator(self.min_percent))
+            value = value[:-1]
+        else:
+            if self.max_amount is not None:
+                self.validators.append(MaxValueValidator(self.max_amount))
+            if self.min_amount is not None:
+                self.validators.append(MinValueValidator(self.min_amount))
+        return super(AmountOrPercentField, self).to_python(value)
+
+    def clean_fields(self, value, cleaned_data):
+        """
+        Given the cleaned value of this field, sets it as the cleaned value of
+        either the amount field or the percent field, depending on
+        self.is_percent.
+
+        Requires that the amount_field_name and pcnt_field_name attributes
+        were set during initialization.
+
+        Should be called by the form's clean() method.
+        """
+        assert self.amount_field_name and self.pcnt_field_name
+        if self.is_percent:
+            cleaned_data[self.pcnt_field_name] = value
+            cleaned_data[self.amount_field_name] = None
+        else:
+            cleaned_data[self.amount_field_name] = value
+            cleaned_data[self.pcnt_field_name] = None
+
+class NewResourceRequestForm(forms.ModelForm):
+    amount_or_pcnt_of_capacity = AmountOrPercentField('amount', 'pcnt_of_capacity', initial=1, label='Amount or percent of capacity', help_text="Enter either the amount of this resource that you want as a whole number of objects, or as a percentage of the final capacity of your class (as an integer followed by a '%' character).")
+    class Meta:
+        model = NewResourceRequest
+        fields = ['resource_content_type', 'resource_object_id', 'subject', 'amount_or_pcnt_of_capacity', 'amount', 'pcnt_of_capacity', 'required', 'description']
+        exclude = ['wont_satisfy', 'is_satisfied_override']
+        widgets = {
+#            'resource_content_type': forms.HiddenInput,
+#            'resource_object_id': forms.HiddenInput,
+#            'subject': forms.HiddenInput,
+            'amount': forms.HiddenInput,
+            'pcnt_of_capacity': forms.HiddenInput,
+            'description': forms.Textarea(attrs={'rows': 4})
+        }
+
+    def clean(self):
+        cleaned_data = super(NewResourceRequestForm, self).clean()
+        amount_or_pcnt_value = cleaned_data.get('amount_or_pcnt_of_capacity', None)
+        self.fields['amount_or_pcnt_of_capacity'].clean_fields(amount_or_pcnt_value, cleaned_data)
+        return cleaned_data
+
+    def as_table(self):
+        "Returns this form rendered as HTML <tr>s -- excluding the <table></table>."
+        return self._html_output(
+            normal_row = u'<tr%(html_class_attr)s><th>%(label)s</th><td>%(field)s%(help_text)s%(errors)s</td></tr>',
+            error_row = u'<tr><td colspan="2">%s</td></tr>',
+            row_ender = u'</td></tr>',
+            help_text_html = u'<br /><span class="helptext">%s</span>',
+            errors_on_separate_row = False)
+
