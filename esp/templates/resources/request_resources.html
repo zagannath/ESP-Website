@@ -1,0 +1,27 @@
+<tr>
+    <td style="vertical-align: top;">
+        <div>
+        <div id="resource-tree-view" style="width: 180px;">
+            <ul>
+                {% for node in rootNewResourceTypes %}
+                    {% include "resources/tree_node.html" %}
+                {% empty %}
+                    {% include "resources/tree_node.html" with node=addNewResourceType %}
+                {% endfor %}
+            </ul>
+        </div>
+        <script type="text/javascript">
+            $j(document).ready(function () {renderTree($j("#resource-tree-view"),false);});
+        </script>
+    </td>
+    <td style="vertical-align: top;">
+        {% for newResourceType in newResourceTypes %}
+            {% include "resources/new_resource_type_form.html" %}
+        {% endfor %}
+        {% for abstractResource in abstractResources %}
+            {% include "resources/abstract_resource_form.html" %}
+        {% endfor %}
+        {% include "resources/new_resource_type_form.html" with newResourceType=addNewResourceType %}
+        {% include "resources/abstract_resource_form.html" with abstractResource=addAbstractResource %}
+    </td>
+</tr>

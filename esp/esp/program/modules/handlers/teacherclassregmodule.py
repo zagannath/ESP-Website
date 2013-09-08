@@ -54,6 +54,7 @@ from django.db.models.query      import Q
 from esp.users.models            import User, ESPUser
 from esp.resources.models        import ResourceType, ResourceRequest
 from esp.resources.forms         import ResourceRequestFormSet, ResourceTypeFormSet
+from esp.resources.views         import requestResources
 from datetime                    import timedelta
 from esp.mailman                 import add_list_member
 from django.http                 import HttpResponseRedirect
@@ -663,6 +664,7 @@ class TeacherClassRegModule(ProgramModuleObj, module_ext.ClassRegModuleInfo):
         """
 
         context = {'module': self}
+        context.update(requestResources(request))
         
         if request.method == 'POST' and request.POST.has_key('class_reg_page'):
             if not self.deadline_met():

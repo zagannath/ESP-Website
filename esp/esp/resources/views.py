@@ -131,8 +131,29 @@ def manageResources(request):
 
     # Finally, render the page.
     return render_to_response('resources/manage_resources.html', request, context)
+
+
+def requestResources(request):
+    context = {}
+
+    newResourceTypes = NewResourceType.objects.filter(is_active=True)
+    abstractResources = AbstractResource.objects.filter(is_active=True).prefetch_related('newresource_set')
+    context['newResourceTypes'], context['abstractResources'], context['rootNewResourceTypes']=rootNewResourceTypes = buildResourceTree(newResourceTypes, abstractResources, forms=True)
+
+    # Now render creation forms
+    addNewResourceType = NewResourceType()
+    addNewResourceType.form = NewResourceTypeForm()
+    addNewResourceType.show = False
+    context['addNewResourceType'] = addNewResourceType
+    addAbstractResource = AbstractResource()
+    addAbstractResource.form = AbstractResourceForm()
+    addAbstractResource.newResourceFormSet = NewResourceFormSet(queryset=NewResource.objects.none(), prefix=addAbstractResource.html_id)
+    addAbstractResource.show = False
+    context['addAbstractResource'] = addAbstractResource
         
+    return context
         
+
 def buildResourceTree(newResourceTypeQuerySet, abstractResourceQuerySet, forms=False):
     """Builds QuerySets of NewResourceTypes and AbstractResources into a tree, namely by packing values into NewResourceType.children and AbstractResource.children.  Returns the list of NewResourceTypes, the list of AbstractResources, and the list of roots in the NewResourceType tree.  If forms, also packs editing forms (and formsets) into them.  This is called in manage resources."""
     # Listify them so we can index into them when building the tree.

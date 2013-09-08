@@ -8,12 +8,16 @@
 {% block stylesheets %}
 {{ block.super }}
 <link rel="stylesheet" type="text/css" href="/media/styles/forms.css" />
+<link rel="stylesheet" type="text/css" href="/media/styles/jquery-ui/jquery-ui.css" />
+<link rel="stylesheet" type="text/css" href="/media/styles/jquery-ui/jstree/style.css" />
 {% endblock %}
 
 {% block xtrajs %}
     {{ block.super }}
     {% include "load_ajax_scripts.html" %}
     <script type="text/javascript" src="/media/scripts/program/modules/teacherclassregmodule.js"></script>
+    <script type="text/javascript" src="/media/scripts/jquery.jstree.js"></script>
+    <script type="text/javascript" src="/media/scripts/resourcetree.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -75,7 +79,7 @@
         {% end_inline_program_qsd_block %}
         </td>
     </tr>
-{% include "program/modules/teacherclassregmodule/requests_form_fragment.html" %}
+{% include "resources/request_resources.html" %}
     {% endif %}
     <tr>
         <td colspan="2">&nbsp;</td>
