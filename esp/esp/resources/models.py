@@ -628,17 +628,17 @@ class NewResourceRequest(HistoryPreservingModel):
   (the model object requested must have is_requestable == True).
   """
   # The following three combine into one field.
-  resource_content_type = models.ForeignKey(ContentType, limit_choices_to={'id__in': lambda: (ContentType.objects.get_for_model(AbstractResource), ContentType.objects.get_for_model(NewResourceType))})
-  resource_object_id = models.PositiveIntegerField()
+  resource_content_type = models.ForeignKey(ContentType, null=True, blank=True, limit_choices_to={'id__in': lambda: (ContentType.objects.get_for_model(AbstractResource).id, ContentType.objects.get_for_model(NewResourceType).id)})
+  resource_object_id = models.PositiveIntegerField(null=True, blank=True)
   resource = generic.GenericForeignKey('resource_content_type', 'resource_object_id') # The requested resource. Target must have is_requestable==True. null if the resource doesn't exist in our system yet; should be described in "description"
 
-  subject = models.ForeignKey('program.ClassSubject')
-  amount = models.IntegerField(null=True, blank=True)
-  pcnt_of_capacity = models.IntegerField(null=True, blank=True)
+  subject = models.ForeignKey('program.ClassSubject', help_text='The class that is making this request.')
+  amount = models.IntegerField(null=True, blank=True, default=1, help_text='The amount of this item that is needed for the class. Should be null if pcnt_of_capacity is not null.')
+  pcnt_of_capacity = models.IntegerField(null=True, blank=True, verbose_name='percent of capacity', help_text='The amount of this item that is needed for the class, as a percentage of the capacity of the class. Should be null if amount is not null.')
   required = models.BooleanField(default=True, help_text='Do you absolutely need this resource for your class?')
-  description = models.TextField(blank=True, default='', help_text='A description of the resource request to be provided by teachers and viewable by admins.')
-  wont_satisfy = models.BooleanField(default=False) # set True if the request has been denied
-  is_satisfied_override = models.TextField(blank=True, default="") # If the request has been satisfied, but the requested NewResource can't be assigned on the website, then set this field as a non-empty explanation string
+  description = models.TextField(blank=True, default='', help_text='(optional) A message to the directors with a description of this resource request.')
+  wont_satisfy = models.BooleanField(default=False, verbose_name="won't satisfy", help_text='Has the request been denied?')
+  is_satisfied_override = models.TextField(blank=True, help_text="An explanation of how the request has been satisfied outside of the website. Should be blank if the request constraint should not be overridden.") # If the request has been satisfied, but the requested NewResource can't be assigned on the website, then set this field as a non-empty explanation string
 
 reversion.register(NewResourceRequest)
 
