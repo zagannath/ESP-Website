@@ -38,7 +38,7 @@ from django.forms.models import modelformset_factory
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 
 from .models import NewResourceType, AbstractResource, NewResource
-from .forms import NewResourceFormSet, NewResourceTypeForm, AbstractResourceForm, NewResourceForm
+from .forms import NewResourceFormSet, NewResourceTypeForm, AbstractResourceForm, NewResourceForm, NewResourceRequestForm
 from esp.web.util import render_to_response
 from esp.users.models import admin_required
 
@@ -160,3 +160,27 @@ def buildResourceTree(newResourceTypeQuerySet, abstractResourceQuerySet, forms=F
         newResourceTypes[newResourceTypeIndices[abstractResource.resource_type_id]].children.append(abstractResource)
     return newResourceTypes, abstractResources, rootNewResourceTypes
 
+def test_NewResourceRequestForm(request):
+    print
+    print
+    if request.method == 'POST':
+        form = NewResourceRequestForm(request.POST)
+        if form.is_valid():
+            print form.cleaned_data
+            try:
+                instance = form.save(commit=False)
+                print instance
+                print instance.__dict__
+                try:
+                    instance.full_clean()
+                except Exception, e:
+                    print e.message_dict
+            except Exception:
+                pass
+        else:
+            print form.errors
+    else:
+        form = NewResourceRequestForm()
+    print
+    print
+    return render_to_response('resources/test_NewResourceRequestForm.html', request, {'form': form})

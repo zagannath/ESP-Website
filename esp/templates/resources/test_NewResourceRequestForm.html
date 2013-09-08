@@ -1,0 +1,27 @@
+{% extends "main.html" %}
+
+{% block title %}Resource Request{% endblock %}
+
+{% block stylesheets %}
+{{ block.super }}
+<style>
+    #content td {
+        padding-top: 10px;
+    }
+    td, th {
+        vertical-align: top;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Resource Request</h1>
+
+<form action="{% url test_NewResourceRequestForm %}" enctype="application/x-www-form-urlencoded" method="post">{% csrf_token %}<table>
+    {{ form }}
+</table>
+<input type="submit" value="Submit" />
+</form>
+
+{% endblock %}

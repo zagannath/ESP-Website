@@ -38,6 +38,7 @@ from esp.admin import admin_site, autodiscover
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.conf.urls import patterns, url, include
 from django.views.generic.base import RedirectView
 
 autodiscover(admin_site)
@@ -118,6 +119,7 @@ urlpatterns += patterns('',
     # resources views
 urlpatterns += patterns('esp.resources.views',
         (r'^manage/resources/$','manageResources'),
+        url(r'^test_NewResourceRequestForm$', 'test_NewResourceRequestForm', name='test_NewResourceRequestForm')
         )
 
 urlpatterns += patterns('esp.web.views.json',
