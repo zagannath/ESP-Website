@@ -11,7 +11,7 @@
   {% block cls_row_1_buttons %}
   <td class="clsmiddle bordertop2">
     <form method="post" action="/teach/{{program.getUrlBase}}/deleteclass/{{cls.id }}" onsubmit="return deleteClass();">
-      <input class="button" type="submit" value="Delete" {% if cls.num_students or not module.deadline_met %}disabled {% endif %} />
+      <input class="button" type="submit" value="{% if cls.num_students or not teacherclsmodule.module.deadline_met %}Request delete{% else %}Delete{% endif %}" />
     </form>
   </td>
   <td class="clsmiddle bordertop2">
