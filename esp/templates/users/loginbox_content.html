@@ -27,8 +27,9 @@
 </div>
 
 <div class="not_logged_in not_logged_in_hidden">
-<div id="divnav">
-  <form name="loginform" id="loginform" method="post" action="/myesp/login/">
+		<div id="divnav">
+				<form name="loginform" id="loginform" method="post" action="/myesp/login/">
+						<noscript><div class="noscript_blocker"><p>You appear to have Javascript disabled. Please <a href="http://www.enable-javascript.com/">enable javascript</a> to log in.</p></div></noscript>
     <input type="hidden" name="next" value="{{ request.path }}" />
     <table border="0" cellpadding="0" cellspacing="0" summary=" ">
       <tr>

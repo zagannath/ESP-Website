@@ -249,6 +249,21 @@ position: absolute;
 top: 34px; right: 25px;
 font-size: smaller;
 }
+
+div.noscript_blocker {
+		z-index:1000;
+		height:4em;
+		border: 1px solid white;
+		background-color: #000000;
+		color: white;
+		position: absolute;
+		width:17em;
+		padding:1em;
+}
+
+div.noscript_blocker p {
+		margin:auto;
+}
 /*#login_help {
 text-decoration: none;
 }
