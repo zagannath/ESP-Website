@@ -80,7 +80,7 @@ class QuasiStaticData(models.Model):
     
     nav_category = models.ForeignKey(NavBarCategory, default=NavBarCategory.default)
 
-    create_date = models.DateTimeField(default=datetime.now, editable=False)
+    create_date = models.DateTimeField(default=datetime.now, editable=False, verbose_name = "Last edited")
     author = AjaxForeignKey(ESPUser)
     disabled = models.BooleanField(default=False)
     keywords = models.TextField(blank=True, null=True)
